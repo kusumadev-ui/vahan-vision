@@ -1,0 +1,3770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1B33">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="description" content="VAHAN VISION — Smart bus seating, crowd information, and accessible audio guidance for public transport.">
+<title>VAHAN VISION — Smart Seating for a Fair Ride</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+<!-- Leaflet JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --teal-600: #0F766E;
+  --teal-700: #115E59;
+  --teal-400: #2DD4BF;
+  --teal-300: #5EEAD4;
+  --amber-500: #F59E0B;
+  --amber-400: #FBBF24;
+  --amber-300: #FCD34D;
+  --navy: #0B1B33;
+  --navy-light: #112240;
+  --navy-card: #162a4a;
+  --navy-surface: #1a3150;
+  --white: #FFFFFF;
+  --gray-50: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-300: #CBD5E1;
+  --gray-400: #94A3B8;
+  --gray-500: #64748B;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1E293B;
+
+  --green-seat: #22C55E;
+  --green-low: #22C55E;
+  --amber-moderate: #F59E0B;
+  --orange-high: #F97316;
+  --red-critical: #EF4444;
+  --slate-occupied: #64748B;
+  --teal-priority: #0F766E;
+
+  --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.2);
+  --glass: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.1);
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+body {
+  font-family: var(--font);
+  color: var(--gray-800);
+  background: var(--white);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: var(--font); border: none; }
+img { max-width: 100%; }
+ul { list-style: none; }
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 3px solid var(--teal-400);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.section-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--gray-500);
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+.text-center { text-align: center; }
+.text-teal { color: var(--teal-600); }
+.text-amber { color: var(--amber-500); }
+
+.demo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber-500);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.demo-badge::before { content: "⬤ "; font-size: 6px; }
+
+.dark-demo-badge {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Glass card */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.light-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.light-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Accessible first-use controls for blind and low-vision passengers */
+.skip-link {
+  position: absolute; left: 12px; top: -100px; z-index: 3000;
+  background: #fff; color: #0B1B33; padding: 12px 16px;
+  border: 3px solid #F59E0B; border-radius: 8px; font-weight: 700;
+}
+.skip-link:focus { top: 12px; }
+.voice-home-panel {
+  background: #fff; color: #0B1B33; border: 3px solid #2DD4BF;
+  border-radius: 16px; padding: 18px; margin: 0 0 26px; max-width: 680px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.22);
+}
+.voice-home-panel h2 { font-size: 1.12rem; margin-bottom: 5px; }
+.voice-home-panel p { font-size: .9rem; line-height: 1.6; margin-bottom: 12px; }
+.voice-language-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.voice-language-buttons button {
+  min-height: 48px; min-width: 112px; padding: 10px 16px; border-radius: 9px;
+  border: 2px solid #115E59; color: #0B1B33; background: #fff; font-size: 1rem; font-weight: 700;
+}
+.voice-language-buttons button[aria-pressed="true"] { background: #115E59; color: #fff; outline: 3px solid #F59E0B; outline-offset: 2px; }
+.voice-home-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.voice-home-actions button {
+  min-height: 50px; padding: 12px 18px; border-radius: 9px; font-size: 1rem;
+  font-weight: 700; background: #0F766E; color: #fff; border: 2px solid #0B1B33;
+}
+.voice-home-actions button.secondary { background: #fff; color: #0B1B33; }
+.voice-home-status { margin-top: 10px; min-height: 1.5em; font-weight: 600; color: #115E59; }
+.voice-command-note { margin-top: 9px; font-size: .82rem !important; color: #334155; }
+@media (max-width: 640px) {
+  .voice-home-panel { padding: 14px; }
+  .voice-language-buttons button, .voice-home-actions button { width: 100%; }
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+#main-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(11, 27, 51, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  transition: background var(--transition);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--white);
+}
+.nav-logo svg { width: 32px; height: 32px; }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.nav-links a {
+  color: var(--gray-300);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 4px 0;
+  position: relative;
+  transition: color var(--transition);
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 2px;
+  background: var(--teal-400);
+  transform: scaleX(0);
+  transition: transform var(--transition);
+}
+.nav-links a:hover, .nav-links a.active {
+  color: var(--white);
+}
+.nav-links a.active::after {
+  transform: scaleX(1);
+}
+
+.mobile-toggle {
+  display: none;
+  background: none;
+  color: var(--white);
+  font-size: 1.5rem;
+  padding: 8px;
+}
+
+@media (max-width: 768px) {
+  .mobile-toggle { display: block; }
+  .nav-links {
+    position: fixed;
+    top: 68px; left: 0; right: 0;
+    background: rgba(11, 27, 51, 0.98);
+    flex-direction: column;
+    padding: 24px;
+    gap: 16px;
+    transform: translateY(-120%);
+    transition: transform var(--transition);
+  }
+  .nav-links.open { transform: translateY(0); }
+  .nav-links a { font-size: 1rem; }
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+#hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #0d2847 50%, var(--teal-700) 100%);
+  color: var(--white);
+  padding: 120px 0 80px;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+#hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 20%, rgba(15, 118, 110, 0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at 30% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(45, 212, 191, 0.12);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  border-radius: 24px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  color: var(--teal-300);
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.hero-title {
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+.hero-title span { color: var(--teal-300); }
+
+.hero-tagline {
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  color: var(--amber-400);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.hero-desc {
+  font-size: 1rem;
+  color: var(--gray-300);
+  line-height: 1.7;
+  margin-bottom: 28px;
+  max-width: 520px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+  color: var(--white);
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.4);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--gray-200);
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid var(--gray-500);
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-secondary:hover {
+  border-color: var(--teal-400);
+  color: var(--teal-300);
+}
+
+/* Hero stat cards */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.hero-stat-card {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+.hero-stat-card .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--teal-300);
+  display: block;
+}
+.hero-stat-card .stat-label {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+.hero-stat-card .demo-badge { margin-top: 6px; }
+
+.hero-mission {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid var(--amber-500);
+  padding: 16px 20px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.9rem;
+  color: var(--gray-300);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* Hero illustration */
+.hero-illustration {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.hero-illustration svg {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+}
+
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; text-align: center; }
+  .hero-desc { margin: 0 auto 28px; }
+  .hero-buttons { justify-content: center; }
+  .hero-stats { max-width: 500px; margin: 0 auto 24px; }
+  .hero-illustration { order: -1; margin-bottom: 32px; }
+  .hero-mission { text-align: left; }
+}
+
+/* ============================================================
+   PROBLEM STATEMENT
+   ============================================================ */
+#problem {
+  padding: 100px 0;
+  background: var(--gray-50);
+}
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+.problem-card {
+  position: relative;
+  overflow: hidden;
+}
+.problem-card .card-icon {
+  width: 56px; height: 56px;
+  background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.problem-card .card-icon svg { width: 28px; height: 28px; fill: none; stroke: var(--white); stroke-width: 2; }
+.problem-card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 10px; color: var(--navy); }
+.problem-card p { font-size: 0.9rem; color: var(--gray-600); line-height: 1.65; }
+.problem-card .card-visual {
+  margin-top: 16px;
+  height: 60px;
+  background: linear-gradient(90deg, rgba(15,118,110,0.08), rgba(15,118,110,0.03));
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ============================================================
+   POLICY SECTION
+   ============================================================ */
+#policy {
+  padding: 100px 0;
+  background: var(--white);
+}
+.policy-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.policy-info h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+.policy-info p, .policy-info li {
+  font-size: 0.95rem;
+  color: var(--gray-600);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.policy-info ul { padding-left: 20px; }
+.policy-info ul li { list-style: disc; margin-bottom: 8px; }
+
+.verify-note {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: var(--gray-600);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+}
+.verify-note svg { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; }
+
+.policy-highlights {
+  display: grid;
+  gap: 16px;
+}
+.policy-highlight-card {
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  color: var(--white);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.policy-highlight-card .ph-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--teal-300);
+}
+.policy-highlight-card .ph-label {
+  font-size: 0.85rem;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .policy-content { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   DASHBOARD SECTION
+   ============================================================ */
+#dashboard {
+  padding: 80px 0 100px;
+  background: linear-gradient(180deg, var(--navy) 0%, #0d2847 100%);
+  color: var(--white);
+}
+
+.dash-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+.dash-controls label {
+  font-size: 0.8rem;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+.dash-controls select, .dash-controls input[type="number"] {
+  background: var(--navy-card);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+}
+.dash-controls select:focus, .dash-controls input:focus {
+  border-color: var(--teal-400);
+  outline: none;
+}
+.dash-btn {
+  background: var(--navy-card);
+  color: var(--gray-300);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+.dash-btn:hover, .dash-btn.active {
+  background: var(--teal-600);
+  color: var(--white);
+  border-color: var(--teal-600);
+}
+.dash-btn-amber.active {
+  background: var(--amber-500);
+  border-color: var(--amber-500);
+  color: var(--navy);
+}
+
+/* Dashboard grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dash-panel {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+}
+.dash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dash-panel-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dash-panel-title svg { width: 18px; height: 18px; }
+.dash-panel.full-width { grid-column: 1 / -1; }
+
+/* Seat Map */
+.seat-map-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bus-body {
+  background: var(--navy-surface);
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 20px 20px 12px 12px;
+  padding: 16px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+}
+.bus-front {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+  padding: 6px;
+  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  margin-bottom: 12px;
+}
+.seat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 12px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 4px;
+}
+.seat-row .aisle {
+  width: 100%;
+  min-height: 8px;
+}
+.seat {
+  width: 100%;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  color: var(--white);
+}
+.seat.available { background: var(--green-seat); }
+.seat.occupied { background: var(--slate-occupied); }
+.seat.priority { border-color: var(--teal-400); }
+.seat:hover { transform: scale(1.15); z-index: 2; }
+
+.seat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  justify-content: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--gray-400);
+}
+.legend-color {
+  width: 16px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+/* Accessible audio guidance */
+.audio-guide-panel {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(45, 212, 191, 0.08);
+}
+.audio-guide-panel h4 { font-size: 0.9rem; margin-bottom: 6px; color: var(--white); }
+.audio-guide-panel p { font-size: 0.75rem; color: var(--gray-300); margin-bottom: 10px; }
+.audio-guide-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.audio-guide-actions button {
+  min-height: 42px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--teal-600);
+  color: var(--white);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.audio-guide-actions button:focus-visible, .audio-guide-panel input:focus-visible {
+  outline: 3px solid var(--amber-400);
+  outline-offset: 3px;
+}
+.audio-guide-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--gray-200); font-size: 0.78rem; }
+.audio-guide-toggle input { width: 18px; height: 18px; }
+.audio-guide-status { margin-top: 8px; color: var(--teal-300); font-size: 0.72rem; min-height: 1.2em; }
+
+ /* Density gauge */
+.gauge-container { text-align: center; }
+.gauge-ring {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 16px;
+  position: relative;
+}
+.gauge-ring svg { width: 100%; height: 100%; }
+.gauge-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.gauge-percent {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.gauge-label {
+  font-size: 0.7rem;
+  color: var(--gray-400);
+}
+.gauge-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.gauge-stat {
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+}
+.gauge-stat .gs-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--teal-300);
+}
+.gauge-stat .gs-label { font-size: 0.7rem; color: var(--gray-400); }
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.severity-low { background: rgba(34,197,94,0.15); color: var(--green-low); }
+.severity-moderate { background: rgba(245,158,11,0.15); color: var(--amber-moderate); }
+.severity-high { background: rgba(249,115,22,0.15); color: var(--orange-high); }
+.severity-critical { background: rgba(239,68,68,0.15); color: var(--red-critical); }
+
+.warning-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 12px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.warning-banner.visible { display: flex; }
+
+/* Camera panel */
+.camera-canvas-wrap {
+  position: relative;
+  background: #0a0f1a;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 16/10;
+}
+.camera-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.camera-overlay-labels {
+  position: absolute;
+  top: 8px; left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cam-label {
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.cam-label.sim { background: rgba(239,68,68,0.8); color: var(--white); }
+.cam-label.fisheye { background: rgba(15,118,110,0.8); color: var(--white); }
+.cam-label.rec { background: rgba(245,158,11,0.8); color: var(--navy); }
+.camera-privacy {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--gray-500);
+  background: rgba(255,255,255,0.04);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+
+/* Prediction panel grid */
+.pred-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .pred-grid { grid-template-columns: 1fr; }
+}
+
+/* Prediction chart */
+.chart-container {
+  position: relative;
+  height: 220px;
+  margin-bottom: 12px;
+}
+.prediction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.prediction-table th {
+  background: rgba(255,255,255,0.06);
+  padding: 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-300);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.prediction-table td {
+  padding: 8px;
+  color: var(--gray-400);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.confidence-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--navy-surface);
+  width: 60px;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--teal-400);
+}
+.prediction-explainer {
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  line-height: 1.5;
+}
+
+/* Map */
+#route-map {
+  height: 350px;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+}
+
+/* Driver alerts */
+.alert-list { max-height: 260px; overflow-y: auto; }
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  transition: opacity var(--transition);
+}
+.alert-item.sev-warn { background: rgba(245,158,11,0.1); border-left: 3px solid var(--amber-500); }
+.alert-item.sev-danger { background: rgba(239,68,68,0.1); border-left: 3px solid var(--red-critical); }
+.alert-item.sev-info { background: rgba(45,212,191,0.08); border-left: 3px solid var(--teal-400); }
+.alert-item .alert-time { font-size: 0.65rem; color: var(--gray-500); min-width: 48px; }
+.alert-item .alert-msg { color: var(--gray-300); flex: 1; }
+.alert-dismiss {
+  background: none;
+  color: var(--gray-500);
+  font-size: 1rem;
+  padding: 0 4px;
+}
+.alert-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.sound-toggle {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Passenger view */
+.pax-view {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 320px;
+  margin: 0 auto;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.pax-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.pax-header h4 {
+  font-size: 1rem;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+.pax-header p { font-size: 0.75rem; color: var(--gray-400); }
+.pax-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+.pax-metric .pm-label { font-size: 0.8rem; color: var(--gray-400); }
+.pax-metric .pm-value { font-size: 1.1rem; font-weight: 700; color: var(--teal-300); }
+.pax-suggestion {
+  text-align: center;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.pax-suggestion.safe { background: rgba(34,197,94,0.12); color: var(--green-low); }
+.pax-suggestion.caution { background: rgba(245,158,11,0.12); color: var(--amber-500); }
+.pax-suggestion.danger { background: rgba(239,68,68,0.12); color: var(--red-critical); }
+
+/* Config panel */
+.config-panel {
+  background: var(--navy-surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.config-field label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--gray-400);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.config-field input {
+  width: 100%;
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--white);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+}
+.config-field input:focus {
+  border-color: var(--teal-400);
+  outline: none;
+}
+.config-field .error-msg {
+  font-size: 0.65rem;
+  color: var(--red-critical);
+  margin-top: 4px;
+  display: none;
+}
+
+/* Slider */
+.occ-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.occ-slider-wrap input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--navy-surface);
+  outline: none;
+}
+.occ-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--teal-400);
+  cursor: pointer;
+}
+.occ-slider-val {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--teal-300);
+  min-width: 36px;
+}
+
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0 16px; }
+  #hero { padding: 100px 0 60px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .hero-stat-card .stat-value { font-size: 1.2rem; }
+  .hero-buttons { flex-direction: column; }
+  .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+  .problem-grid { grid-template-columns: 1fr; }
+  .policy-content { grid-template-columns: 1fr; }
+  .impact-grid { grid-template-columns: 1fr; }
+  .team-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-controls { flex-direction: column; align-items: stretch; }
+  .dash-controls > div { width: 100%; }
+  .bus-body { padding: 10px; }
+  .seat { width: 100%; height: 24px; font-size: 0.5rem; }
+  #route-map { height: 250px; }
+  .prediction-table { font-size: 0.65rem; }
+  .prediction-table th, .prediction-table td { padding: 6px 4px; }
+  .comparison-table th, .comparison-table td { font-size: 0.75rem; padding: 8px; }
+  .gauge-ring { width: 130px; height: 130px; }
+  .gauge-percent { font-size: 1.6rem; }
+  .pax-view { max-width: 100%; }
+  .cam-label { font-size: 0.5rem; }
+}
+@media (max-width: 380px) {
+  .hero-stats { grid-template-columns: 1fr; }
+  .team-grid { grid-template-columns: 1fr; }
+  .seat { width: 100%; height: 20px; font-size: 0.45rem; }
+  .seat-row .aisle { width: 16px; }
+}
+
+/* ============================================================
+   HOW IT WORKS
+   ============================================================ */
+#how-it-works {
+  padding: 100px 0;
+  background: var(--gray-50);
+}
+.pipeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.pipeline-step {
+  text-align: center;
+  max-width: 180px;
+  position: relative;
+  flex: 0 0 auto;
+}
+.pipeline-step .step-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+.pipeline-step .step-icon svg { width: 28px; height: 28px; stroke: var(--white); fill: none; stroke-width: 2; }
+.pipeline-step h4 { font-size: 0.9rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.pipeline-step p { font-size: 0.78rem; color: var(--gray-500); line-height: 1.5; }
+.pipeline-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  margin-top: 28px;
+  color: var(--teal-600);
+  font-size: 1.5rem;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+}
+.comparison-table th, .comparison-table td {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+.comparison-table th {
+  background: var(--teal-700);
+  color: var(--white);
+  font-weight: 600;
+}
+.comparison-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.comparison-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.comparison-table td { color: var(--gray-600); }
+.comparison-table tr:hover { background: rgba(15,118,110,0.04); }
+
+@media (max-width: 640px) {
+  .pipeline-arrow { transform: rotate(90deg); margin: 8px auto; padding: 0; }
+  .pipeline { flex-direction: column; align-items: center; }
+}
+
+/* ============================================================
+   IMPACT
+   ============================================================ */
+#impact {
+  padding: 100px 0;
+  background: var(--white);
+}
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+.impact-card {
+  border-top: 4px solid var(--teal-600);
+}
+.impact-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.impact-card ul { padding-left: 0; }
+.impact-card li {
+  font-size: 0.88rem;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  padding-left: 16px;
+  position: relative;
+}
+.impact-card li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--teal-600);
+  font-weight: 700;
+}
+.impact-card .kpi-note {
+  margin-top: 12px;
+  font-size: 0.72rem;
+  color: var(--gray-400);
+  font-style: italic;
+}
+
+/* ============================================================
+   ROADMAP
+   ============================================================ */
+#roadmap {
+  padding: 100px 0;
+  background: var(--gray-50);
+}
+.roadmap-timeline {
+  position: relative;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.roadmap-timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--teal-600), var(--amber-500));
+}
+.roadmap-item {
+  padding-left: 56px;
+  position: relative;
+  margin-bottom: 40px;
+}
+.roadmap-item::before {
+  content: '';
+  position: absolute;
+  left: 13px; top: 4px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--teal-600);
+  border: 3px solid var(--white);
+  box-shadow: 0 0 0 3px var(--teal-600);
+}
+.roadmap-item h4 { font-size: 1.05rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.roadmap-item p { font-size: 0.88rem; color: var(--gray-600); line-height: 1.6; }
+.roadmap-item .phase-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--teal-600);
+  background: rgba(15,118,110,0.08);
+  padding: 2px 10px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.risks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 48px;
+}
+.risk-card {
+  background: var(--white);
+  border-left: 4px solid var(--amber-500);
+}
+.risk-card h4 { font-size: 0.95rem; color: var(--navy); margin-bottom: 8px; }
+.risk-card p { font-size: 0.82rem; color: var(--gray-600); line-height: 1.6; }
+
+/* ============================================================
+   TEAM
+   ============================================================ */
+#team {
+  padding: 100px 0;
+  background: var(--white);
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+}
+.team-card {
+  text-align: center;
+}
+.team-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-600), var(--navy));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 1.5rem;
+  color: var(--white);
+  font-weight: 700;
+}
+.team-card h4 { font-size: 1rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.team-card .role { font-size: 0.82rem; color: var(--teal-600); font-weight: 500; margin-bottom: 4px; }
+.team-card .college { font-size: 0.78rem; color: var(--gray-500); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+#footer {
+  background: var(--navy);
+  color: var(--gray-400);
+  padding: 48px 0 24px;
+}
+.footer-content {
+  text-align: center;
+}
+.footer-disclaimer {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: var(--radius-sm);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--gray-300);
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  font-size: 0.85rem;
+  color: var(--gray-400);
+  transition: color var(--transition);
+}
+.footer-links a:hover { color: var(--teal-300); }
+.footer-copy {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 20px;
+}
+
+
+/* ============================================================
+   OFFLINE TRAVEL MODE — emergency details that remain on-device
+   ============================================================ */
+.offline-section { padding: 64px 0; background: linear-gradient(180deg, #f1f7fb 0%, #eaf5f4 100%); color: #0B1B33; }
+.offline-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:24px; }
+.offline-head h2 { font-size:clamp(1.7rem,3vw,2.3rem); line-height:1.2; margin:0 0 10px; color:#0B1B33; }
+.offline-head p { max-width:780px; line-height:1.7; margin:0; color:#334155; }
+.connection-pill { display:inline-flex; align-items:center; gap:9px; border-radius:999px; padding:10px 15px; font-weight:800; border:2px solid #0F766E; background:#fff; min-height:44px; }
+.connection-pill::before { content:""; width:10px; height:10px; border-radius:50%; background:#0F766E; }
+.connection-pill.is-offline { border-color:#B91C1C; color:#991B1B; background:#fff7f7; }
+.connection-pill.is-offline::before { background:#DC2626; }
+.offline-grid { display:grid; grid-template-columns:minmax(0, .9fr) minmax(0, 1.1fr); gap:22px; align-items:start; }
+.offline-card { background:#fff; border:1px solid #cbd5e1; border-radius:18px; box-shadow:0 10px 28px rgba(11,27,51,.08); padding:24px; min-width:0; }
+.offline-card h3 { font-size:1.25rem; margin:0 0 12px; color:#0B1B33; }
+.offline-card p { line-height:1.65; color:#334155; }
+.offline-status { border-radius:12px; padding:12px 14px; margin:0 0 18px; background:#e6f7ef; border:1px solid #86d9af; color:#14532d; font-weight:700; line-height:1.5; }
+.offline-status.is-offline { background:#fff1f2; border-color:#fda4af; color:#9f1239; }
+.emergency-number-list { display:grid; gap:12px; margin:16px 0; }
+.emergency-number { border:1px solid #dbe4ee; background:#f8fafc; padding:14px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.emergency-number strong { display:block; font-size:1rem; }
+.emergency-number small { display:block; margin-top:3px; color:#475569; line-height:1.4; }
+.emergency-number a { flex:0 0 auto; background:#0F766E; color:white; border:2px solid #115E59; border-radius:10px; padding:10px 15px; text-decoration:none; font-weight:900; font-size:1.12rem; }
+.offline-field { display:block; margin:14px 0; font-weight:700; color:#0B1B33; }
+.offline-field input, .offline-field textarea { display:block; width:100%; margin-top:7px; border:2px solid #94a3b8; border-radius:10px; padding:12px; background:#fff; color:#0B1B33; font:inherit; font-size:1rem; font-weight:400; }
+.offline-field input:focus, .offline-field textarea:focus { outline:3px solid #F59E0B; outline-offset:2px; border-color:#0F766E; }
+.offline-field textarea { min-height:100px; resize:vertical; line-height:1.5; }
+.offline-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+.offline-actions button { min-height:48px; border:2px solid #0B1B33; border-radius:10px; padding:11px 15px; background:#0F766E; color:#fff; font-weight:800; font-size:1rem; cursor:pointer; }
+.offline-actions button.secondary { color:#0B1B33; background:#fff; }
+.offline-actions button:focus-visible, .emergency-number a:focus-visible { outline:3px solid #F59E0B; outline-offset:3px; }
+.offline-help-note { background:#fff8e6; border:1px solid #f5d27a; color:#713f12 !important; border-radius:12px; padding:13px 15px; margin-top:15px; font-size:.92rem; }
+.offline-save-status { min-height:1.5em; margin:12px 0 0; font-weight:700; color:#115E59 !important; }
+.offline-disclaimer { margin-top:20px; font-size:.9rem; color:#475569; line-height:1.65; }
+@media (max-width: 850px) { .offline-grid { grid-template-columns:1fr; } .offline-section { padding:48px 0; } }
+@media (max-width: 520px) { .offline-card { padding:17px; } .emergency-number { align-items:flex-start; } .emergency-number a { padding:9px 12px; } .offline-actions button { width:100%; } }
+
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#voice-guide" data-i18n="skipVoice">Skip to voice guide</a>
+
+<!-- ============================================================
+     NAVIGATION
+     ============================================================ -->
+<nav id="main-nav" role="navigation" aria-label="Main navigation">
+  <div class="container nav-inner">
+    <a href="#hero" class="nav-logo" aria-label="VAHAN VISION Home">
+      <!-- Logo SVG -->
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="8" width="28" height="16" rx="4" stroke="#2DD4BF" stroke-width="2"/>
+        <circle cx="9" cy="28" r="3" stroke="#2DD4BF" stroke-width="2"/>
+        <circle cx="23" cy="28" r="3" stroke="#2DD4BF" stroke-width="2"/>
+        <rect x="6" y="12" width="5" height="4" rx="1" fill="#2DD4BF" opacity="0.6"/>
+        <rect x="13" y="12" width="5" height="4" rx="1" fill="#F59E0B" opacity="0.6"/>
+        <rect x="20" y="12" width="5" height="4" rx="1" fill="#2DD4BF" opacity="0.6"/>
+        <circle cx="27" cy="6" r="4" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="3 2"/>
+      </svg>
+      VAHAN VISION
+    </a>
+    <div class="nav-links" id="navLinks" role="menubar">
+      <a href="#hero" role="menuitem">Home</a>
+      <a href="#problem" role="menuitem">Problem</a>
+      <a href="#policy" role="menuitem">Policy</a>
+      <a href="#dashboard" role="menuitem">Dashboard</a>
+      <a href="#how-it-works" role="menuitem">How It Works</a>
+      <a href="#impact" role="menuitem">Impact</a>
+      <a href="#roadmap" role="menuitem">Roadmap</a>
+      <a href="#team" role="menuitem">Team</a>
+    </div>
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     HERO SECTION
+     ============================================================ -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <!-- First-use multilingual voice access. Speech starts only after a deliberate tap/click,
+             because browsers normally block audio autoplay and microphone access requires permission. -->
+        <section class="voice-home-panel" id="voice-guide" aria-labelledby="voiceHomeTitle">
+          <h2 id="voiceHomeTitle" data-i18n="voiceHomeTitle">Accessible Voice Guide</h2>
+          <p id="voiceHomeIntro" data-i18n="voiceHomeIntro">Choose your language, then activate Start Voice Mode. The website will speak instructions and can listen for simple voice commands when your browser supports it.</p>
+          <div class="voice-language-buttons" role="group" aria-label="Choose spoken language" data-i18n-aria="languageGroupLabel">
+            <button type="button" class="voice-language-btn" data-language="en" aria-pressed="true" aria-label="Choose English language">English</button>
+            <button type="button" class="voice-language-btn" data-language="te" aria-pressed="false" aria-label="తెలుగు భాషను ఎంచుకోండి">తెలుగు</button>
+            <button type="button" class="voice-language-btn" data-language="hi" aria-pressed="false" aria-label="हिंदी भाषा चुनें">हिन्दी</button>
+          </div>
+          <div class="voice-home-actions">
+            <button type="button" id="startVoiceModeBtn" data-i18n="startVoiceMode">▶ Start Voice Mode</button>
+            <button type="button" class="secondary" id="repeatVoiceHelpBtn" data-i18n="repeatGuide">Repeat instructions</button>
+            <button type="button" class="secondary" id="stopHomeVoiceBtn" data-i18n="stopVoice">Stop voice</button>
+          </div>
+          <div class="voice-home-status" id="voiceHomeStatus" role="status" aria-live="polite" data-i18n="voiceReady">Voice guide is ready. Choose a language and start voice mode.</div>
+          <p class="voice-command-note" id="voiceCommandNote" data-i18n="voiceCommandNote">Try saying: “bus information”, “seat availability”, “help”, “repeat”, or “stop”. Microphone access is optional and may not be supported in every browser.</p>
+        </section>
+        <div class="hero-tag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          AI-Powered Smart Mobility
+        </div>
+        <h1 class="hero-title">VAHAN <span>VISION</span></h1>
+        <p class="hero-tagline">Smart Seating for a Fair Ride.</p>
+        <p class="hero-desc">
+          Making every bus journey safer, smarter, and more predictable. VAHAN VISION uses computer vision and predictive analytics to detect overcrowding in real-time, forecast passenger load at upcoming stops, and deliver actionable alerts to drivers and commuters — helping public transport scale safely as demand grows.
+        </p>
+        <div class="hero-buttons">
+          <a href="#dashboard" class="btn-primary" role="button" aria-label="Explore the dashboard with sample bus and seat information">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Explore Live Dashboard
+          </a>
+          <a href="#how-it-works" class="btn-secondary" role="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            How It Works
+          </a>
+        </div>
+
+        <!-- Animated stat cards -->
+        <div class="hero-stats">
+          <div class="hero-stat-card">
+            <span class="stat-value" data-target="52" id="statSeats">0</span>
+            <span class="stat-label">Total Seats</span>
+            <span class="demo-badge">Demo Data</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-value" data-target="34" id="statOccupied">0</span>
+            <span class="stat-label">Occupied</span>
+            <span class="demo-badge">Demo Data</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-value" data-target="18" id="statAvailable">0</span>
+            <span class="stat-label">Available</span>
+            <span class="demo-badge">Demo Data</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-value" id="statCrowd">Moderate</span>
+            <span class="stat-label">Crowd Level</span>
+            <span class="demo-badge">Demo Data</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-value" data-target="78" id="statPredicted">0</span>
+            <span class="stat-label">Predicted Load %</span>
+            <span class="demo-badge">Demo Data</span>
+          </div>
+        </div>
+
+        <div class="hero-mission">
+          "Technology should make public transportation safer, more predictable, and fairer for every commuter — regardless of whether they travel free or pay a fare."
+        </div>
+      </div>
+
+      <!-- Hero Illustration: Bus with AI features -->
+      <div class="hero-illustration">
+        <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+          <!-- Bus Body -->
+          <rect x="60" y="120" width="380" height="160" rx="20" fill="#162a4a" stroke="#2DD4BF" stroke-width="2"/>
+          <!-- Windows -->
+          <rect x="90" y="140" width="40" height="35" rx="6" fill="#0F766E" opacity="0.4" stroke="#2DD4BF" stroke-width="1"/>
+          <rect x="140" y="140" width="40" height="35" rx="6" fill="#0F766E" opacity="0.6" stroke="#2DD4BF" stroke-width="1"/>
+          <rect x="190" y="140" width="40" height="35" rx="6" fill="#F59E0B" opacity="0.3" stroke="#FBBF24" stroke-width="1"/>
+          <rect x="240" y="140" width="40" height="35" rx="6" fill="#F59E0B" opacity="0.5" stroke="#FBBF24" stroke-width="1"/>
+          <rect x="290" y="140" width="40" height="35" rx="6" fill="#0F766E" opacity="0.4" stroke="#2DD4BF" stroke-width="1"/>
+          <rect x="340" y="140" width="40" height="35" rx="6" fill="#0F766E" opacity="0.3" stroke="#2DD4BF" stroke-width="1"/>
+          <rect x="390" y="140" width="30" height="35" rx="6" fill="#0F766E" opacity="0.5" stroke="#2DD4BF" stroke-width="1"/>
+          <!-- Door -->
+          <rect x="170" y="190" width="35" height="80" rx="4" fill="#0B1B33" stroke="#64748B" stroke-width="1.5"/>
+          <line x1="187" y1="195" x2="187" y2="265" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+          <!-- Wheels -->
+          <circle cx="120" cy="290" r="20" fill="#1E293B" stroke="#64748B" stroke-width="2"/>
+          <circle cx="120" cy="290" r="8" fill="#334155"/>
+          <circle cx="380" cy="290" r="20" fill="#1E293B" stroke="#64748B" stroke-width="2"/>
+          <circle cx="380" cy="290" r="8" fill="#334155"/>
+          <!-- 360 Camera Dome -->
+          <ellipse cx="250" cy="115" rx="22" ry="12" fill="#0F766E" stroke="#2DD4BF" stroke-width="1.5"/>
+          <circle cx="250" cy="108" r="8" fill="#2DD4BF" opacity="0.3"/>
+          <circle cx="250" cy="108" r="4" fill="#2DD4BF">
+            <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="250" y="100" text-anchor="middle" fill="#5EEAD4" font-size="8" font-weight="600">360°</text>
+          <!-- AI Detection Boxes -->
+          <rect x="95" y="195" width="22" height="30" rx="2" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-dasharray="3 2">
+            <animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite"/>
+          </rect>
+          <text x="106" y="235" text-anchor="middle" fill="#22C55E" font-size="5">Person</text>
+          <rect x="225" y="200" width="22" height="28" rx="2" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="3 2">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
+          </rect>
+          <text x="236" y="238" text-anchor="middle" fill="#F59E0B" font-size="5">Person</text>
+          <rect x="310" y="198" width="20" height="26" rx="2" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-dasharray="3 2">
+            <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <!-- Seat dots (inside bus top view) -->
+          <circle cx="100" cy="250" r="4" fill="#22C55E" opacity="0.8"/>
+          <circle cx="115" cy="250" r="4" fill="#64748B" opacity="0.8"/>
+          <circle cx="250" cy="250" r="4" fill="#22C55E" opacity="0.8"/>
+          <circle cx="265" cy="250" r="4" fill="#22C55E" opacity="0.8"/>
+          <circle cx="310" cy="250" r="4" fill="#64748B" opacity="0.8"/>
+          <circle cx="325" cy="250" r="4" fill="#64748B" opacity="0.8"/>
+          <circle cx="350" cy="250" r="4" fill="#22C55E" opacity="0.8"/>
+          <circle cx="395" cy="250" r="4" fill="#64748B" opacity="0.8"/>
+          <!-- GPS Signal Waves -->
+          <g transform="translate(430, 130)">
+            <circle cx="0" cy="0" r="10" fill="none" stroke="#F59E0B" stroke-width="1" opacity="0.6">
+              <animate attributeName="r" values="10;25;10" dur="2s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="0" cy="0" r="10" fill="none" stroke="#F59E0B" stroke-width="1" opacity="0.4">
+              <animate attributeName="r" values="10;35;10" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="0" cy="0" r="5" fill="#F59E0B"/>
+            <text x="0" y="-18" text-anchor="middle" fill="#FBBF24" font-size="7" font-weight="600">GPS</text>
+          </g>
+          <!-- Labels -->
+          <text x="250" y="340" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="500">SmartSeat AI — Simulated Bus Overview</text>
+          <text x="250" y="358" text-anchor="middle" fill="#64748B" font-size="8">Camera • Edge AI • GPS • Prediction Engine</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ============================================================
+     OFFLINE TRAVEL MODE — available even when a connection drops
+     ============================================================ -->
+<section id="offline-travel" class="offline-section" aria-labelledby="offlineTitle">
+  <div class="container">
+    <div class="offline-head">
+      <div>
+        <h2 id="offlineTitle">Offline Travel Mode</h2>
+        <p id="offlineIntro">Even when the internet disappears, your saved emergency information stays on this device. Open VAHAN VISION once while online, add trusted local help points, and save your offline pack before travelling.</p>
+      </div>
+      <div id="connectionPill" class="connection-pill" role="status" aria-live="polite">Checking connection…</div>
+    </div>
+
+    <div class="offline-grid">
+      <article class="offline-card" aria-labelledby="emergencyHelpTitle">
+        <div id="offlineStatus" class="offline-status" role="status" aria-live="polite">Emergency information is available on this page. Connection status is being checked.</div>
+        <h3 id="emergencyHelpTitle">Visakhapatnam Emergency Help</h3>
+        <p>These emergency numbers are included on this page and remain visible when you are offline.</p>
+        <div class="emergency-number-list">
+          <div class="emergency-number"><div><strong>108 — Ambulance</strong><small>Ambulance service listed for Visakhapatnam by GVMC.</small></div><a href="tel:108" aria-label="Call ambulance number 108">Call 108</a></div>
+          <div class="emergency-number"><div><strong>101 — Fire service</strong><small>Fire and rescue emergency service.</small></div><a href="tel:101" aria-label="Call fire service number 101">Call 101</a></div>
+          <div class="emergency-number"><div><strong>100 — Police emergency</strong><small>Police emergency contact listed for Visakhapatnam.</small></div><a href="tel:100" aria-label="Call police emergency number 100">Call 100</a></div>
+        </div>
+        <div class="offline-actions">
+          <button type="button" id="readOfflineHelpBtn">🔊 Read emergency help aloud</button>
+        </div>
+        <p class="offline-help-note"><strong>Important:</strong> This page can show saved details offline, but it cannot send an SOS to responders by itself. Calls/SMS still depend on phone/network availability. If you have no usable signal, approach the bus conductor/driver, station staff, or another trusted nearby person.</p>
+      </article>
+
+      <article class="offline-card" aria-labelledby="offlineDetailsTitle">
+        <h3 id="offlineDetailsTitle">My Saved Offline Emergency Pack</h3>
+        <p>Enter the route and trusted local help points while you have time. Details are saved in this browser on this device; they are not uploaded to a server.</p>
+        <form id="offlineEmergencyForm">
+          <label class="offline-field" for="offlineRoute">Bus route / bus number
+            <input id="offlineRoute" name="route" autocomplete="off" maxlength="120" placeholder="e.g., Route number or bus registration">
+          </label>
+          <label class="offline-field" for="offlineStop">Current stop / landmark (fill in before or during travel)
+            <input id="offlineStop" name="stop" autocomplete="off" maxlength="200" placeholder="e.g., bus stop name or known landmark">
+          </label>
+          <label class="offline-field" for="offlineTrustedName">Trusted emergency contact name (optional)
+            <input id="offlineTrustedName" name="trustedName" autocomplete="name" maxlength="100" placeholder="Person you trust">
+          </label>
+          <label class="offline-field" for="offlineTrustedPhone">Trusted emergency contact phone (optional)
+            <input id="offlineTrustedPhone" name="trustedPhone" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="Phone number">
+          </label>
+          <label class="offline-field" for="offlineHelpPoints">Verified local help points (add names, address/landmark, and phone if known)
+            <textarea id="offlineHelpPoints" name="helpPoints" maxlength="3000" placeholder="Police station: name / location / phone&#10;Hospital: name / location / phone&#10;Bus depot or station help desk: name / location / phone"></textarea>
+          </label>
+          <label class="offline-field" for="offlineSosMessage">Pre-written emergency message
+            <textarea id="offlineSosMessage" name="sosMessage" maxlength="1500">EMERGENCY: I need help while travelling on public transport. Please contact me and help me reach a safe place.</textarea>
+          </label>
+          <div class="offline-actions">
+            <button type="submit" id="saveOfflinePackBtn">💾 Save Emergency Pack on This Device</button>
+            <button type="button" class="secondary" id="copyOfflineSosBtn">Copy SOS Message</button>
+          </div>
+          <p class="offline-save-status" id="offlineSaveStatus" role="status" aria-live="polite">Your built-in emergency numbers are ready. Save your personal travel details before your journey.</p>
+        </form>
+        <p class="offline-disclaimer">For safety, only add help points you have verified. “Nearest” locations are not automatically detected in offline mode; this demo uses the locations you enter. On a shared device, remove personal details before leaving.</p>
+      </article>
+    </div>
+    <p class="offline-disclaimer">Offline website note: a downloaded single HTML file can keep this panel working while it is open and can save form details in browser storage. For the website to reopen after the internet is disconnected, the included offline-ready package must be served from HTTPS (or localhost) and opened once online. Live bus updates and online map tiles may not work offline.</p>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PROBLEM STATEMENT
+     ============================================================ -->
+<section id="problem">
+  <div class="container">
+    <h2 class="section-title text-center reveal">The Challenge</h2>
+    <p class="section-subtitle text-center reveal">Growing ridership outpaces capacity — technology can bridge the gap safely.</p>
+
+    <div class="problem-grid">
+      <!-- Card A: Overcrowding -->
+      <div class="light-card problem-card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Overcrowding Risk</h3>
+        <p>When demand exceeds seats — and sometimes safe capacity — crowding at doors and aisles raises the risk of pushing, stumbling, and falls, endangering all passengers.</p>
+        <div class="card-visual">
+          <svg width="200" height="50" viewBox="0 0 200 50">
+            <rect x="10" y="10" width="180" height="30" rx="8" fill="none" stroke="#0F766E" stroke-width="1.5" opacity="0.4"/>
+            <circle cx="30" cy="25" r="6" fill="#EF4444" opacity="0.5"/><circle cx="48" cy="25" r="6" fill="#EF4444" opacity="0.6"/>
+            <circle cx="66" cy="25" r="6" fill="#F59E0B" opacity="0.5"/><circle cx="84" cy="25" r="6" fill="#F59E0B" opacity="0.6"/>
+            <circle cx="102" cy="25" r="6" fill="#EF4444" opacity="0.7"/><circle cx="120" cy="25" r="6" fill="#EF4444" opacity="0.5"/>
+            <circle cx="138" cy="25" r="6" fill="#F97316" opacity="0.6"/><circle cx="156" cy="25" r="6" fill="#EF4444" opacity="0.6"/>
+            <circle cx="174" cy="25" r="6" fill="#F59E0B" opacity="0.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card B: Timing mismatches -->
+      <div class="light-card problem-card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Timing Mismatches</h3>
+        <p>Crowded stops lengthen boarding and alighting time. Delays accumulate along routes. Commuters lack crowd-level and ETA information to decide whether to wait or board.</p>
+        <div class="card-visual">
+          <svg width="200" height="50" viewBox="0 0 200 50">
+            <line x1="20" y1="40" x2="180" y2="40" stroke="#CBD5E1" stroke-width="1"/>
+            <polyline points="20,35 50,30 80,25 110,15 130,18 160,30 180,35" fill="none" stroke="#F59E0B" stroke-width="2"/>
+            <text x="100" y="12" text-anchor="middle" fill="#94A3B8" font-size="8">Delay accumulation</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card C: Seat insufficiency -->
+      <div class="light-card problem-card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="10" rx="2"/><path d="M2 17h20M6 15v2M18 15v2"/></svg>
+        </div>
+        <h3>Seat Insufficiency</h3>
+        <p>Demand grows faster than available seats. Fare-paying and free-travel passengers share the same limited seating. SmartSeat AI improves visibility and safety for <strong>all commuters</strong>, without prioritizing by gender or fare status.</p>
+        <div class="card-visual">
+          <svg width="200" height="50" viewBox="0 0 200 50">
+            <rect x="20" y="15" width="18" height="14" rx="3" fill="#22C55E" opacity="0.6"/>
+            <rect x="42" y="15" width="18" height="14" rx="3" fill="#64748B" opacity="0.6"/>
+            <rect x="64" y="15" width="18" height="14" rx="3" fill="#64748B" opacity="0.6"/>
+            <rect x="86" y="15" width="18" height="14" rx="3" fill="#22C55E" opacity="0.6"/>
+            <rect x="108" y="15" width="18" height="14" rx="3" fill="#64748B" opacity="0.6"/>
+            <rect x="130" y="15" width="18" height="14" rx="3" fill="#64748B" opacity="0.6"/>
+            <rect x="152" y="15" width="18" height="14" rx="3" fill="#64748B" opacity="0.6"/>
+            <text x="100" y="44" text-anchor="middle" fill="#94A3B8" font-size="8">Limited availability</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card D: Human impact -->
+      <div class="light-card problem-card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <h3>Human Impact</h3>
+        <p>Pressure on drivers and conductors, boarding conflicts at busy stops, falls on crowded or moving buses. SmartSeat AI emphasizes <strong>prevention</strong> and safer boarding for everyone.</p>
+        <div class="card-visual">
+          <svg width="200" height="50" viewBox="0 0 200 50">
+            <circle cx="60" cy="25" r="12" fill="none" stroke="#0F766E" stroke-width="1.5" opacity="0.5"/>
+            <text x="60" y="29" text-anchor="middle" fill="#0F766E" font-size="8">🛡️</text>
+            <line x1="80" y1="25" x2="120" y2="25" stroke="#2DD4BF" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <circle cx="140" cy="25" r="12" fill="none" stroke="#22C55E" stroke-width="1.5" opacity="0.5"/>
+            <text x="140" y="29" text-anchor="middle" fill="#22C55E" font-size="8">✓</text>
+            <text x="100" y="48" text-anchor="middle" fill="#94A3B8" font-size="7">Prevention → Safety</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     POLICY BACKGROUND
+     ============================================================ -->
+<section id="policy">
+  <div class="container">
+    <h2 class="section-title text-center reveal">Policy Background</h2>
+    <p class="section-subtitle text-center reveal">Understanding the demand context behind SmartSeat AI</p>
+
+    <div class="policy-content reveal">
+      <div class="policy-info">
+        <h3>Stree Shakti — Free Bus Travel for Women (Andhra Pradesh)</h3>
+        <p>The Stree Shakti scheme, launched on <strong>15 August 2025</strong>, is one of the Super Six promises by the Andhra Pradesh government. It provides free bus travel for women on APSRTC and private-stage carrier buses across the state.</p>
+
+        <h3 style="margin-top: 24px;">Objectives</h3>
+        <ul>
+          <li>Enhance women's mobility and freedom of movement</li>
+          <li>Support financial independence by reducing transport costs</li>
+          <li>Improve access to education, employment, healthcare, and essential services</li>
+          <li>Empower women across urban and rural Andhra Pradesh</li>
+        </ul>
+
+        <p style="margin-top: 16px;">The scheme has significantly increased public bus usage, creating a genuine need for better capacity management, real-time passenger information, and enhanced onboard safety.</p>
+
+        <p><strong>Reported figure:</strong> Approximately <strong>12 lakh free rides were recorded in the first 30 hours</strong> of the scheme's launch.</p>
+
+        <div class="verify-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span><strong>Verification note:</strong> The launch date of 15 August 2025 and the "12 lakh rides in 30 hours" figure are reported statistics. Readers should verify these against an official government press release or credible news source before citing.</span>
+        </div>
+
+        <p style="margin-top: 20px;">SmartSeat AI is positioned as a <strong>complementary technology</strong> that helps transport operators manage growing demand — it does not evaluate or comment on policy decisions.</p>
+      </div>
+
+      <div class="policy-highlights">
+        <div class="policy-highlight-card">
+          <div class="ph-value">12L+</div>
+          <div class="ph-label">Reported free rides in first 30 hours</div>
+          <span class="demo-badge dark-demo-badge" style="margin-top:8px;">Reported figure — verify source</span>
+        </div>
+        <div class="policy-highlight-card">
+          <div class="ph-value">Super Six</div>
+          <div class="ph-label">Part of AP government's flagship welfare promises</div>
+        </div>
+        <div class="policy-highlight-card">
+          <div class="ph-value">State-wide</div>
+          <div class="ph-label">Coverage across APSRTC and private stage carriers</div>
+        </div>
+        <div class="policy-highlight-card" style="border-left: 3px solid var(--teal-400);">
+          <div style="font-size: 0.9rem; color: var(--gray-300); line-height: 1.6;">
+            <strong style="color: var(--teal-300);">SmartSeat AI's Role:</strong> Technology-assisted capacity management and passenger safety — complementing operators' efforts to serve more riders safely.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     INTERACTIVE LIVE DASHBOARD
+     ============================================================ -->
+<section id="dashboard">
+  <div class="container">
+    <h2 class="section-title text-center reveal" style="color: var(--white);">Interactive Live Dashboard</h2>
+    <p class="section-subtitle text-center reveal" style="color: var(--gray-400);">Simulated real-time monitoring — all data is generated for demonstration</p>
+
+    <!-- Controls -->
+    <div class="dash-controls reveal">
+      <div>
+        <label for="busSelect">Bus</label><br>
+        <select id="busSelect">
+          <option value="0">VSKP-101 — RTC Complex–Gajuwaka Express</option>
+          <option value="1">VSKP-204 — Dwaraka–Beach Road</option>
+          <option value="2">VSKP-318 — NAD–Simhachalam</option>
+          <option value="3">VSKP-420 — Jagadamba–Bheemunipatnam</option>
+        </select>
+      </div>
+      <div>
+        <label>Scenario</label><br>
+        <button class="dash-btn active" data-scenario="offpeak" id="btnOffpeak">Off-peak</button>
+        <button class="dash-btn" data-scenario="peak" id="btnPeak">Peak</button>
+        <button class="dash-btn" data-scenario="festival" id="btnFestival">Festival Rush</button>
+      </div>
+      <div>
+        <label for="occSlider">Occupancy</label><br>
+        <div class="occ-slider-wrap">
+          <input type="range" id="occSlider" min="0" max="100" value="65">
+          <span class="occ-slider-val" id="occSliderVal">65%</span>
+        </div>
+      </div>
+      <div>
+        <button class="dash-btn dash-btn-amber" id="btnPlayPause">⏸ Pause</button>
+      </div>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="config-panel reveal">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--gray-300);">⚙ Configuration</span>
+        <span class="demo-badge dark-demo-badge">Editable</span>
+      </div>
+      <div class="config-grid">
+        <div class="config-field">
+          <label for="cfgSeats">Seating Capacity</label>
+          <input type="number" id="cfgSeats" value="52" min="10" max="80">
+          <div class="error-msg" id="errSeats"></div>
+        </div>
+        <div class="config-field">
+          <label for="cfgStanding">Standing Capacity</label>
+          <input type="number" id="cfgStanding" value="20" min="0" max="60">
+          <div class="error-msg" id="errStanding"></div>
+        </div>
+        <div class="config-field">
+          <label for="cfgSafeCap">Safe Total Capacity</label>
+          <input type="number" id="cfgSafeCap" value="65" min="10" max="120">
+          <div class="error-msg" id="errSafeCap"></div>
+        </div>
+        <div class="config-field">
+          <label for="cfgWarnPct">Warning Threshold %</label>
+          <input type="number" id="cfgWarnPct" value="85" min="50" max="100">
+          <div class="error-msg" id="errWarnPct"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dash-grid">
+
+      <!-- Panel A: Bus Overview -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Bus Overview
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div id="busOverview" style="font-size: 0.82rem; color: var(--gray-300); line-height: 1.8;">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+
+      <!-- Panel B: Density Gauge -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Density Gauge
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div class="gauge-container" id="gaugeContainer">
+          <div class="gauge-ring">
+            <svg viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#2DD4BF" stroke-width="12"
+                      stroke-dasharray="427" stroke-dashoffset="150" stroke-linecap="round"
+                      transform="rotate(-90 80 80)" id="gaugeArc"/>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-percent" id="gaugePercent">65%</div>
+              <div class="gauge-label">Capacity Used</div>
+            </div>
+          </div>
+          <div class="gauge-stats">
+            <div class="gauge-stat"><div class="gs-value" id="gaugePax">42</div><div class="gs-label">Passengers</div></div>
+            <div class="gauge-stat"><div class="gs-value" id="gaugeSafeCap">65</div><div class="gs-label">Safe Capacity</div></div>
+            <div class="gauge-stat"><div class="gs-value" id="gaugeSeated">34</div><div class="gs-label">Seated</div></div>
+            <div class="gauge-stat"><div class="gs-value" id="gaugeStanding">8</div><div class="gs-label">Standing Est.</div></div>
+          </div>
+          <div id="gaugeSeverity"></div>
+          <div class="warning-banner" id="warningBanner">
+            ⚠️ <span id="warningMsg">Approaching safe capacity threshold!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel C: Seat Map -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20"/></svg>
+            Seat Map
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div class="seat-map-container">
+          <div class="bus-body" id="seatMap">
+            <div class="bus-front">🚌 FRONT — Driver</div>
+            <!-- Seats rendered by JS -->
+          </div>
+          <div class="seat-legend">
+            <div class="legend-item"><div class="legend-color" style="background: var(--green-seat);"></div> Available</div>
+            <div class="legend-item"><div class="legend-color" style="background: var(--slate-occupied);"></div> Occupied</div>
+            <div class="legend-item"><div class="legend-color" style="background: var(--green-seat); border: 2px solid var(--teal-400);"></div> Priority (available)</div>
+            <div class="legend-item" style="margin-top: 4px; width: 100%; justify-content: center;">
+              <span style="font-size: 0.65rem; color: var(--gray-500);">Seat colors show availability only — see Density Gauge for overall crowd severity</span>
+            </div>
+          </div>
+          <div class="audio-guide-panel" aria-labelledby="audioGuideTitle">
+            <h4 id="audioGuideTitle">🔊 Audio guidance for blind and low-vision passengers</h4>
+            <p>Listen to seat availability and sample bus information. This is a website demo; it does not yet provide live bus announcements.</p>
+            <div class="audio-guide-actions">
+              <button type="button" id="readSeatMapBtn">Read seat map aloud</button>
+              <button type="button" id="readBusInfoBtn">Read bus information</button>
+              <button type="button" id="stopSpeechBtn" aria-label="Stop audio guidance">Stop voice</button>
+            </div>
+            <label class="audio-guide-toggle" for="autoSeatVoice">
+              <input type="checkbox" id="autoSeatVoice">
+              Announce seat status when I select a seat
+            </label>
+            <div class="audio-guide-status" id="audioGuideStatus" role="status" aria-live="polite">Voice guidance is ready. Use a button to listen.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel D: Camera -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Camera Monitoring (Simulated 360° View)
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div class="camera-canvas-wrap">
+          <canvas id="cameraCanvas"></canvas>
+          <div class="camera-overlay-labels">
+            <span class="cam-label sim">⚠ SIMULATED — NO REAL CAMERA CONNECTED</span>
+            <span class="cam-label fisheye">360° Fisheye View</span>
+            <span class="cam-label rec">● REC (Simulated feed)</span>
+          </div>
+        </div>
+        <div class="camera-privacy">
+          🔒 <strong>Privacy note:</strong> In a real deployment, the system would perform person-counting on-device using edge AI. No identifiable footage, faces, or personal data would be stored or transmitted. Only anonymized crowd counts and zone densities are used.
+        </div>
+      </div>
+
+      <!-- Panel E: Stop-wise Prediction -->
+      <div class="dash-panel full-width reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Stop-wise Passenger Prediction
+          </div>
+          <span class="demo-badge dark-demo-badge">Simulated Demo Data</span>
+        </div>
+        <div class="pred-grid">
+          <div>
+            <div class="chart-container">
+              <canvas id="predictionChart"></canvas>
+            </div>
+          </div>
+          <div>
+            <table class="prediction-table" id="predictionTable">
+              <thead>
+                <tr><th>Stop</th><th>Board</th><th>Alight</th><th>Load</th><th>Confidence</th></tr>
+              </thead>
+              <tbody><!-- Filled by JS --></tbody>
+            </table>
+            <div class="prediction-explainer">
+              <strong>How this is predicted:</strong> A baseline model uses time-of-day patterns, stop type (terminal, hospital, college, market), and the selected scenario to estimate boarding/alighting. Random noise (±15%) simulates real-world variability. Confidence decreases for stops further ahead. <em>In a real system, this would use historical ETM data and live GPS feeds.</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel F: Route Map -->
+      <div class="dash-panel full-width reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            Route & Tracking Map
+          </div>
+          <span class="demo-badge dark-demo-badge">Simulated GPS</span>
+        </div>
+        <div id="route-map"></div>
+      </div>
+
+      <!-- Panel G: Driver Alerts -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Driver Alert Panel
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div class="alert-controls">
+          <div class="sound-toggle">
+            <label for="soundToggle">🔇 Sound</label>
+            <input type="checkbox" id="soundToggle">
+          </div>
+          <button class="dash-btn" id="clearAlerts" style="margin-left: auto; font-size: 0.72rem;">Clear All</button>
+        </div>
+        <div class="alert-list" id="alertList">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+
+      <!-- Panel H: Passenger View -->
+      <div class="dash-panel reveal">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Passenger View (Mobile Preview)
+          </div>
+          <span class="demo-badge dark-demo-badge">Demo Data</span>
+        </div>
+        <div class="pax-view" id="paxView">
+          <div class="pax-header">
+            <h4 id="paxBusName">🚌 VSKP-101</h4>
+            <p id="paxRoute">RTC Complex–Gajuwaka Express</p>
+          </div>
+          <div class="pax-metric"><span class="pm-label">Seats Available</span><span class="pm-value" id="paxSeats">18</span></div>
+          <div class="pax-metric"><span class="pm-label">Crowd Level</span><span class="pm-value" id="paxCrowd">Moderate</span></div>
+          <div class="pax-metric"><span class="pm-label">ETA to Next Stop</span><span class="pm-value" id="paxEta">4 min</span></div>
+          <div class="pax-suggestion safe" id="paxSuggestion">✅ Seats available — Board this bus</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     HOW IT WORKS
+     ============================================================ -->
+<section id="how-it-works">
+  <div class="container">
+    <h2 class="section-title text-center reveal">How It Works</h2>
+    <p class="section-subtitle text-center reveal">From onboard sensors to actionable intelligence — a five-stage pipeline</p>
+
+    <div class="pipeline reveal">
+      <div class="pipeline-step">
+        <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <h4>360° Camera</h4>
+        <p>Onboard fisheye camera captures the bus interior continuously</p>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h3"/></svg></div>
+        <h4>Edge AI Counting</h4>
+        <p>On-device model counts people per zone without storing faces</p>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg></div>
+        <h4>GPS & Route Data</h4>
+        <p>Real-time position, stop proximity, and schedule adherence</p>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+        <h4>Prediction Engine</h4>
+        <p>Forecasts load at upcoming stops using historical patterns</p>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <h4>Driver & Passenger Alerts</h4>
+        <p>Actionable warnings to drivers; crowd/ETA info to commuters</p>
+      </div>
+    </div>
+
+    <!-- Comparison table -->
+    <div class="reveal" style="overflow-x: auto;">
+      <h3 class="text-center" style="margin-bottom: 16px; font-size: 1.1rem; color: var(--navy);">Simulated in This Demo vs. Real Deployment</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr><th>Component</th><th>This Demo (Simulated)</th><th>Real Deployment (Planned Integration)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Camera Feed</strong></td><td>Animated canvas with illustrative bounding boxes</td><td>Onboard 360° IP camera with RTSP stream</td></tr>
+          <tr><td><strong>Person Counting</strong></td><td>Randomized counts driven by scenario parameters</td><td>Edge AI model (YOLOv8/MobileNet) on onboard GPU</td></tr>
+          <tr><td><strong>GPS Tracking</strong></td><td>Predefined route coordinates with timed animation</td><td>APSRTC GPS / ETM data feed via API</td></tr>
+          <tr><td><strong>Predictions</strong></td><td>Baseline model with time-of-day + noise</td><td>ML model trained on historical ETM and ridership data</td></tr>
+          <tr><td><strong>Alerts</strong></td><td>Rule-based triggers from simulated thresholds</td><td>Real-time alerts via driver tablet + passenger app push</td></tr>
+          <tr><td><strong>Data Storage</strong></td><td>In-memory JavaScript state (browser only)</td><td>Cloud database with anonymized analytics dashboard</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     IMPACT
+     ============================================================ -->
+<section id="impact">
+  <div class="container">
+    <h2 class="section-title text-center reveal">Impact & Benefits</h2>
+    <p class="section-subtitle text-center reveal">Value for every stakeholder in the transit ecosystem</p>
+
+    <div class="impact-grid">
+      <div class="light-card impact-card reveal">
+        <h3>🚍 Passengers</h3>
+        <ul>
+          <li>Know seat availability and crowd levels before boarding</li>
+          <li>Receive "wait / take next bus" suggestions via app</li>
+          <li>Reduced pushing and conflict at busy stops</li>
+          <li>Safer boarding and alighting experience</li>
+        </ul>
+        <div class="kpi-note">Projected goal: 30% reduction in boarding conflicts (illustrative, not measured)</div>
+      </div>
+      <div class="light-card impact-card reveal">
+        <h3>🧑‍✈️ Drivers & Conductors</h3>
+        <ul>
+          <li>Real-time crowd alerts reduce manual counting stress</li>
+          <li>Advance warning of heavy stops enables safer approach</li>
+          <li>Documented occupancy supports dispute resolution</li>
+          <li>Reduced pressure from overcrowding situations</li>
+        </ul>
+        <div class="kpi-note">Projected goal: 25% less driver-reported stress incidents (illustrative)</div>
+      </div>
+      <div class="light-card impact-card reveal">
+        <h3>🏢 Transport Operators</h3>
+        <ul>
+          <li>Data-driven fleet allocation and route optimization</li>
+          <li>Identify high-demand corridors for additional services</li>
+          <li>Reduce schedule deviations from overcrowding delays</li>
+          <li>Transparent capacity reporting for compliance</li>
+        </ul>
+        <div class="kpi-note">Projected goal: 15% improvement in schedule adherence (illustrative)</div>
+      </div>
+      <div class="light-card impact-card reveal">
+        <h3>🏛️ Government Planners</h3>
+        <ul>
+          <li>Anonymized ridership analytics for policy decisions</li>
+          <li>Monitor impact of welfare schemes on transport capacity</li>
+          <li>Evidence-based case for fleet expansion funding</li>
+          <li>Safety metrics tracking and incident reduction</li>
+        </ul>
+        <div class="kpi-note">Projected goal: Data visibility across 500+ routes (illustrative target)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ROADMAP
+     ============================================================ -->
+<section id="roadmap">
+  <div class="container">
+    <h2 class="section-title text-center reveal">Implementation Roadmap</h2>
+    <p class="section-subtitle text-center reveal">A phased, realistic path from prototype to scale</p>
+
+    <div class="roadmap-timeline reveal">
+      <div class="roadmap-item">
+        <span class="phase-tag">Phase 1 — Pilot (Months 1–3)</span>
+        <h4>Small-Scale Validation</h4>
+        <p>Install 360° cameras and edge devices on 5–10 buses on a single high-demand route (e.g., RTC Complex–Gajuwaka in Visakhapatnam). Validate person-counting accuracy, test driver alert UX, and collect baseline data.</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase-tag">Phase 2 — Refinement (Months 4–6)</span>
+        <h4>Model Training & Integration</h4>
+        <p>Train prediction models on collected data. Integrate with APSRTC GPS/ETM feeds. Launch passenger-facing app (crowd info + ETA). Address accuracy and connectivity issues from pilot.</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase-tag">Phase 3 — Scale-Up (Months 7–12)</span>
+        <h4>Multi-Route Expansion</h4>
+        <p>Expand to 50–100 buses across 10+ routes. Deploy central analytics dashboard for depot managers. Implement automated fleet rebalancing suggestions.</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase-tag">Phase 4 — Full Deployment (Year 2+)</span>
+        <h4>State-wide Rollout</h4>
+        <p>Integrate with state transport management systems. Scale to hundreds of buses. Open anonymized data APIs for researchers and urban planners.</p>
+      </div>
+    </div>
+
+    <h3 class="text-center reveal" style="margin-top: 60px; margin-bottom: 16px; font-size: 1.15rem; color: var(--navy);">Risks & Mitigations</h3>
+    <div class="risks-grid reveal">
+      <div class="light-card risk-card">
+        <h4>🔒 Privacy</h4>
+        <p><strong>Risk:</strong> Camera footage may raise privacy concerns.<br><strong>Mitigation:</strong> Edge-only processing. No faces stored. Only anonymized counts transmitted. Compliance with IT Act and data protection norms.</p>
+      </div>
+      <div class="light-card risk-card">
+        <h4>🎯 Accuracy</h4>
+        <p><strong>Risk:</strong> Counting errors in crowded or low-light conditions.<br><strong>Mitigation:</strong> Multi-modal validation (camera + door sensors). Continuous model retraining. Confidence scores on all predictions.</p>
+      </div>
+      <div class="light-card risk-card">
+        <h4>💰 Cost</h4>
+        <p><strong>Risk:</strong> Hardware and connectivity costs per bus.<br><strong>Mitigation:</strong> Use affordable edge devices (Jetson Nano ~₹15K). Phased rollout. Seek government/CSR funding for pilot.</p>
+      </div>
+      <div class="light-card risk-card">
+        <h4>📶 Connectivity</h4>
+        <p><strong>Risk:</strong> Inconsistent mobile network in rural areas.<br><strong>Mitigation:</strong> Offline-capable edge processing. Batch sync at depots. Local driver alerts work without connectivity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TEAM
+     ============================================================ -->
+<section id="team">
+  <div class="container">
+    <h2 class="section-title text-center reveal">Our Team: Code Blossoms</h2>
+    <p class="section-subtitle text-center reveal">Built with passion for safer public transport</p>
+
+    <div class="team-grid reveal">
+      <div class="light-card team-card">
+        <div class="team-avatar">KL</div>
+        <h4>Kusuma Latha</h4>
+        <div class="role">Team Lead</div>
+      </div>
+      <div class="light-card team-card">
+        <div class="team-avatar">NS</div>
+        <h4>Navya Sree</h4>
+        <div class="role">Team Member</div>
+      </div>
+      <div class="light-card team-card">
+        <div class="team-avatar">P</div>
+        <h4>Pranathi</h4>
+        <div class="role">Team Member</div>
+      </div>
+      <div class="light-card team-card">
+        <div class="team-avatar">DS</div>
+        <h4>Divya Sree</h4>
+        <div class="role">Team Member</div>
+      </div>
+      <div class="light-card team-card">
+        <div class="team-avatar">RT</div>
+        <h4>Roopa Tanvitha</h4>
+        <div class="role">Team Member</div>
+      </div>
+      <div class="light-card team-card">
+        <div class="team-avatar">YB</div>
+        <h4>Yasaswani Bai</h4>
+        <div class="role">Team Member</div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer id="footer">
+  <div class="container footer-content">
+    <div class="footer-disclaimer">
+      <strong>⚠️ Hackathon Prototype Disclaimer:</strong> All data, bus positions, camera feeds, passenger counts, and predictions shown on this website are <strong>entirely simulated</strong> for demonstration purposes. No real bus is tracked. No real camera is connected. This is a concept prototype built for a college hackathon to illustrate the potential of AI-assisted crowd management in public transit.
+    </div>
+    <div class="footer-disclaimer" style="background: rgba(45,212,191,0.08); border-color: rgba(45,212,191,0.25);">
+      <strong>📋 Source & Verification Notes:</strong> The Stree Shakti scheme launch date (15 August 2025) and the "12 lakh free rides in 30 hours" figure are based on news reports. These should be independently verified against official government press releases or APSRTC communications before being cited in formal contexts. All projected KPIs in the Impact section are illustrative goals, not measured outcomes.
+    </div>
+    <div class="footer-links">
+      <a href="#hero">Home</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#team">Team</a>
+    </div>
+    <div class="footer-copy">
+      © 2026 VAHAN VISION — College Hackathon Prototype · Bus, crowd, seat, route, and camera data are simulated
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+/* ============================================================
+   STATE - Single source of truth
+   ============================================================ */
+const STATE = {
+  running: true,
+  tickInterval: null,
+  tick: 0,
+  selectedBus: 0,
+  scenario: 'offpeak',
+  occupancyPct: 65,
+
+  // Configuration (editable)
+  config: {
+    seatingCapacity: 52,
+    standingCapacity: 20,
+    safeCapacity: 65,
+    warningThresholdPct: 85
+  },
+
+  // Bus data
+  buses: [
+    {
+      id: 'VSKP-101', name: 'RTC Complex–Gajuwaka Express',
+      seats: 52, route: 'RTC Complex → Jagadamba → NAD Junction → Gajuwaka',
+      stops: [
+        { name: 'RTC Complex (Dwaraka)', lat: 17.7236, lng: 83.3050, type: 'terminal' },
+        { name: 'Jagadamba Junction', lat: 17.7105, lng: 83.3010, type: 'major' },
+        { name: 'NAD Junction', lat: 17.7436, lng: 83.2268, type: 'regular' },
+        { name: 'Gajuwaka', lat: 17.6868, lng: 83.2093, type: 'market' }
+      ]
+    },
+    {
+      id: 'VSKP-204', name: 'Dwaraka–Beach Road',
+      seats: 44, route: 'Dwaraka Bus Station → Collectorate → Siripuram → Beach Road',
+      stops: [
+        { name: 'Dwaraka Bus Station', lat: 17.7236, lng: 83.3050, type: 'terminal' },
+        { name: 'Collectorate', lat: 17.7135, lng: 83.3118, type: 'major' },
+        { name: 'Siripuram Junction', lat: 17.7195, lng: 83.3165, type: 'regular' },
+        { name: 'RK Beach Road', lat: 17.7140, lng: 83.3250, type: 'market' }
+      ]
+    },
+    {
+      id: 'VSKP-318', name: 'NAD–Simhachalam',
+      seats: 48, route: 'NAD Junction → Gopalapatnam → Simhachalam',
+      stops: [
+        { name: 'NAD Junction', lat: 17.7436, lng: 83.2268, type: 'terminal' },
+        { name: 'Gopalapatnam', lat: 17.7700, lng: 83.2300, type: 'regular' },
+        { name: 'Simhachalam', lat: 17.7665, lng: 83.2508, type: 'major' }
+      ]
+    },
+    {
+      id: 'VSKP-420', name: 'Jagadamba–Bheemunipatnam',
+      seats: 56, route: 'Jagadamba → MVP Colony → Madhurawada → Bheemunipatnam',
+      stops: [
+        { name: 'Jagadamba Junction', lat: 17.7105, lng: 83.3010, type: 'terminal' },
+        { name: 'MVP Colony', lat: 17.7415, lng: 83.3350, type: 'college' },
+        { name: 'Madhurawada', lat: 17.8010, lng: 83.3590, type: 'regular' },
+        { name: 'Bheemunipatnam', lat: 17.8896, lng: 83.4513, type: 'terminal' }
+      ]
+    }
+  ],
+
+  // Current simulation state
+  currentStopIdx: 0,
+  busProgress: 0, // 0 to 1 between stops
+  passengers: 34,
+  occupiedSeats: [],
+  alerts: [],
+  alertIdCounter: 0,
+
+  // Map references
+  map: null,
+  busMarker: null,
+  routeLine: null,
+  stopMarkers: [],
+
+  // Chart
+  predictionChart: null,
+
+  // Camera animation
+  cameraAnimFrame: null,
+  cameraPersons: []
+};
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  initNav();
+  initScrollReveal();
+  initHeroCounters();
+  initSeatMap();
+  initAudioGuidance();
+  initMap();
+  initPredictionChart();
+  initCameraCanvas();
+  initControls();
+  initConfigPanel();
+  startSimulation();
+  updateAll();
+});
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function initNav() {
+  const toggle = document.getElementById('mobileToggle');
+  const links = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => {
+    const open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
+    toggle.textContent = open ? '✕' : '☰';
+  });
+
+  // Close on link click
+  links.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = '☰';
+    });
+  });
+
+  // Active section highlight
+  const sections = document.querySelectorAll('section[id]');
+  const navAnchors = links.querySelectorAll('a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navAnchors.forEach(a => a.classList.remove('active'));
+        const active = links.querySelector(`a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '-80px 0px 0px 0px' });
+  sections.forEach(s => observer.observe(s));
+}
+
+/* ============================================================
+   SCROLL REVEAL
+   ============================================================ */
+function initScrollReveal() {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+/* ============================================================
+   HERO COUNTER ANIMATIONS
+   ============================================================ */
+function initHeroCounters() {
+  const counters = document.querySelectorAll('.hero-stat-card .stat-value[data-target]');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const target = parseInt(entry.target.dataset.target);
+        animateCounter(entry.target, 0, target, 1200);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => observer.observe(c));
+}
+
+function animateCounter(el, start, end, duration) {
+  const range = end - start;
+  const startTime = performance.now();
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + range * ease);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+function initControls() {
+  // Bus selector
+  document.getElementById('busSelect').addEventListener('change', e => {
+    STATE.selectedBus = parseInt(e.target.value);
+    STATE.currentStopIdx = 0;
+    STATE.busProgress = 0;
+    updateConfig();
+    initSeatMap();
+    updateMap();
+    updateAll();
+  });
+
+  // Scenario buttons
+  document.querySelectorAll('[data-scenario]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      STATE.scenario = btn.dataset.scenario;
+      applyScenario();
+      updateAll();
+    });
+  });
+
+  // Occupancy slider
+  const slider = document.getElementById('occSlider');
+  const sliderVal = document.getElementById('occSliderVal');
+  slider.addEventListener('input', () => {
+    STATE.occupancyPct = parseInt(slider.value);
+    sliderVal.textContent = slider.value + '%';
+    applyOccupancy();
+    updateAll();
+  });
+
+  // Play/Pause
+  document.getElementById('btnPlayPause').addEventListener('click', () => {
+    STATE.running = !STATE.running;
+    const btn = document.getElementById('btnPlayPause');
+    btn.textContent = STATE.running ? '⏸ Pause' : '▶ Play';
+    btn.classList.toggle('active', STATE.running);
+  });
+
+  // Clear alerts
+  document.getElementById('clearAlerts').addEventListener('click', () => {
+    STATE.alerts = [];
+    renderAlerts();
+  });
+}
+
+function applyScenario() {
+  const scenarios = { offpeak: 40, peak: 78, festival: 95 };
+  STATE.occupancyPct = scenarios[STATE.scenario] || 65;
+  document.getElementById('occSlider').value = STATE.occupancyPct;
+  document.getElementById('occSliderVal').textContent = STATE.occupancyPct + '%';
+  applyOccupancy();
+}
+
+function applyOccupancy() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const totalSeats = STATE.config.seatingCapacity;
+  const occupied = Math.round(totalSeats * STATE.occupancyPct / 100);
+  STATE.passengers = Math.min(
+    Math.round(STATE.config.safeCapacity * STATE.occupancyPct / 100),
+    STATE.config.safeCapacity + 10
+  );
+  // Update occupied seats
+  STATE.occupiedSeats = [];
+  for (let i = 0; i < occupied && i < totalSeats; i++) {
+    STATE.occupiedSeats.push(i);
+  }
+  renderSeatMap();
+}
+
+/* ============================================================
+   CONFIGURATION PANEL
+   ============================================================ */
+function initConfigPanel() {
+  ['cfgSeats', 'cfgStanding', 'cfgSafeCap', 'cfgWarnPct'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => validateAndApplyConfig());
+    document.getElementById(id).addEventListener('input', () => validateAndApplyConfig());
+  });
+}
+
+function validateAndApplyConfig() {
+  const seats = parseInt(document.getElementById('cfgSeats').value) || 0;
+  const standing = parseInt(document.getElementById('cfgStanding').value) || 0;
+  const safeCap = parseInt(document.getElementById('cfgSafeCap').value) || 0;
+  const warnPct = parseInt(document.getElementById('cfgWarnPct').value) || 0;
+
+  let valid = true;
+  // Validate
+  if (seats < 10 || seats > 80) {
+    showError('errSeats', 'Must be 10–80'); valid = false;
+  } else { hideError('errSeats'); }
+
+  if (standing < 0 || standing > 60) {
+    showError('errStanding', 'Must be 0–60'); valid = false;
+  } else { hideError('errStanding'); }
+
+  if (safeCap < seats) {
+    showError('errSafeCap', 'Must be ≥ seating capacity'); valid = false;
+  } else if (safeCap > 120) {
+    showError('errSafeCap', 'Must be ≤ 120'); valid = false;
+  } else { hideError('errSafeCap'); }
+
+  if (warnPct < 50 || warnPct > 100) {
+    showError('errWarnPct', 'Must be 50–100'); valid = false;
+  } else { hideError('errWarnPct'); }
+
+  if (valid) {
+    STATE.config.seatingCapacity = seats;
+    STATE.config.standingCapacity = standing;
+    STATE.config.safeCapacity = safeCap;
+    STATE.config.warningThresholdPct = warnPct;
+    applyOccupancy();
+    updateAll();
+  }
+}
+
+function updateConfig() {
+  const bus = STATE.buses[STATE.selectedBus];
+  STATE.config.seatingCapacity = bus.seats;
+  STATE.config.safeCapacity = bus.seats + 15;
+  document.getElementById('cfgSeats').value = STATE.config.seatingCapacity;
+  document.getElementById('cfgSafeCap').value = STATE.config.safeCapacity;
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+/* ============================================================
+   SEAT MAP
+   ============================================================ */
+function initSeatMap() {
+  const totalSeats = STATE.config.seatingCapacity;
+  const occupied = Math.round(totalSeats * STATE.occupancyPct / 100);
+  STATE.occupiedSeats = [];
+  // Randomly assign occupied seats
+  const indices = Array.from({ length: totalSeats }, (_, i) => i);
+  shuffleArray(indices);
+  for (let i = 0; i < occupied; i++) {
+    STATE.occupiedSeats.push(indices[i]);
+  }
+  renderSeatMap();
+}
+
+function renderSeatMap() {
+  const container = document.getElementById('seatMap');
+  const totalSeats = STATE.config.seatingCapacity;
+  const seatsPerRow = 4; // 2+2 layout
+  const rows = Math.ceil(totalSeats / seatsPerRow);
+  const prioritySeats = [0, 1, 2, 3, 4, 5, 6, 7]; // First 2 rows
+
+  let html = '<div class="bus-front">🚌 FRONT — Driver</div>';
+  let seatIdx = 0;
+  for (let r = 0; r < rows; r++) {
+    html += '<div class="seat-row">';
+    for (let c = 0; c < seatsPerRow; c++) {
+      if (c === 2) html += '<div class="aisle"></div>';
+      if (seatIdx < totalSeats) {
+        const isOccupied = STATE.occupiedSeats.includes(seatIdx);
+        const isPriority = prioritySeats.includes(seatIdx);
+        const cls = isOccupied ? 'occupied' : 'available';
+        const priCls = isPriority ? ' priority' : '';
+        html += `<div class="seat ${cls}${priCls}" data-seat="${seatIdx}" tabindex="0" 
+                  role="button" aria-label="Seat ${seatIdx + 1}, ${isOccupied ? 'occupied' : 'available'}${isPriority ? ', priority seat' : ''}"
+                  title="Seat ${seatIdx + 1}">${seatIdx + 1}</div>`;
+      }
+      seatIdx++;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+
+  // Click to toggle
+  container.querySelectorAll('.seat').forEach(seat => {
+    seat.addEventListener('click', () => {
+      const idx = parseInt(seat.dataset.seat);
+      toggleSeat(idx);
+      if (document.getElementById('autoSeatVoice')?.checked) {
+        const occupiedNow = STATE.occupiedSeats.includes(idx);
+        speakGuidance(`Seat ${idx + 1} is now ${occupiedNow ? 'occupied' : 'available'}.`);
+      }
+    });
+    seat.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const idx = parseInt(seat.dataset.seat);
+        toggleSeat(idx);
+        if (document.getElementById('autoSeatVoice')?.checked) {
+          const occupiedNow = STATE.occupiedSeats.includes(idx);
+          speakGuidance(`Seat ${idx + 1} is now ${occupiedNow ? 'occupied' : 'available'}.`);
+        }
+      }
+    });
+  });
+}
+
+function toggleSeat(idx) {
+  const pos = STATE.occupiedSeats.indexOf(idx);
+  if (pos > -1) {
+    STATE.occupiedSeats.splice(pos, 1);
+  } else {
+    STATE.occupiedSeats.push(idx);
+  }
+  // Recalculate passengers
+  const seatedCount = STATE.occupiedSeats.length;
+  const standingEst = Math.max(0, STATE.passengers - seatedCount);
+  STATE.passengers = seatedCount + standingEst;
+  STATE.occupancyPct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+  document.getElementById('occSlider').value = Math.min(STATE.occupancyPct, 100);
+  document.getElementById('occSliderVal').textContent = Math.min(STATE.occupancyPct, 100) + '%';
+  renderSeatMap();
+  updateAll();
+}
+
+/* ============================================================
+   MULTILINGUAL ACCESSIBLE VOICE GUIDE (browser speech demo)
+   ============================================================ */
+const VOICE_COPY = {
+  en: {
+    tag: 'en-IN', html: 'en', languageName: 'English',
+    homeTitle: 'Accessible Voice Guide',
+    homeIntro: 'Choose your language, then activate Start Voice Mode. The website will speak instructions and can listen for simple voice commands when your browser supports it.',
+    start: '▶ Start Voice Mode', repeat: 'Repeat instructions', stop: 'Stop voice',
+    ready: 'Voice guide is ready. Choose a language and start voice mode.',
+    commandNote: 'Try saying: “bus information”, “seat availability”, “help”, “repeat”, or “stop”. Microphone access is optional and may not be supported in every browser.',
+    greeting: 'Welcome to Vahan Vision, the accessible bus travel guide. You selected English. You can say bus information, seat availability, help, repeat, or stop. This is a demonstration and the bus and seat data are simulated. Please confirm bus details with the driver or conductor.',
+    listening: 'Listening for a voice command. Say bus information, seat availability, help, repeat, or stop.',
+    micUnsupported: 'Voice commands are not supported in this browser. You can use the clearly labelled buttons on this page or your phone screen reader.',
+    micDenied: 'Microphone access was not granted. You can still use the buttons and screen reader. Check your browser microphone permissions if you want voice commands.',
+    languageSelected: 'English selected. Activate Start Voice Mode to hear the guide.',
+    bus: 'Demo bus information. Bus ID', route: 'Route', currentStop: 'Sample current stop', passengers: 'Estimated passengers', occupancy: 'Estimated occupancy', crowd: 'Demo crowd level', notLive: 'This is simulated information, not live bus tracking. Confirm the bus and stop with the driver or conductor before boarding.',
+    seats: 'Demo seat information. Total seats', occupied: 'marked occupied', available: 'marked available', priority: 'priority seats available. The seat map is illustrative and may not match the real bus layout.',
+    help: 'Assistance requested in this demo. No message has been sent to transport staff. Please ask the driver, conductor, or a trusted person for assistance.',
+    commandUnknown: 'Sorry, I did not understand. Try saying bus information, seat availability, help, repeat, or stop.',
+    started: 'Voice mode started.', stopped: 'Voice guidance stopped.', reading: 'Reading the page instructions.',
+    speakBus: 'Read bus information aloud', speakSeats: 'Read seat availability aloud',
+    pageSummary: 'Vahan Vision helps passengers explore sample bus crowd and seat information. Use the dashboard for the demo seat map and crowd panel. All bus, location, camera, and seat values in this prototype are simulated, not live information. Do not rely on this demonstration alone when boarding.'
+  },
+  te: {
+    tag: 'te-IN', html: 'te', languageName: 'తెలుగు',
+    homeTitle: 'దృష్టి లోపం ఉన్నవారి కోసం వాయిస్ గైడ్',
+    homeIntro: 'ముందుగా భాషను ఎంచుకోండి. తర్వాత వాయిస్ మోడ్ ప్రారంభించండి. మీ బ్రౌజర్ మద్దతు ఇస్తే వెబ్‌సైట్ సూచనలు చదివి, సులభమైన వాయిస్ ఆదేశాలను వినగలదు.',
+    start: '▶ వాయిస్ మోడ్ ప్రారంభించండి', repeat: 'సూచనలను మళ్లీ వినండి', stop: 'వాయిస్ ఆపండి',
+    ready: 'వాయిస్ గైడ్ సిద్ధంగా ఉంది. భాషను ఎంచుకుని వాయిస్ మోడ్ ప్రారంభించండి.',
+    commandNote: '“బస్సు సమాచారం”, “సీట్ల వివరాలు”, “సహాయం”, “మళ్లీ చెప్పు” లేదా “ఆపు” అని చెప్పండి. మైక్రోఫోన్ అనుమతి ఐచ్ఛికం; ప్రతి బ్రౌజర్‌లో ఇది పనిచేయకపోవచ్చు.',
+    greeting: 'వాహన్ విజన్‌కు స్వాగతం. ఇది బస్సు ప్రయాణానికి సహాయపడే వాయిస్ గైడ్. మీరు తెలుగును ఎంచుకున్నారు. బస్సు సమాచారం, సీట్ల వివరాలు, సహాయం, మళ్లీ చెప్పు లేదా ఆపు అని చెప్పండి. ఇది ప్రదర్శన మాత్రమే. బస్సు మరియు సీట్ల సమాచారం నమూనా డేటా. ఎక్కే ముందు డ్రైవర్ లేదా కండక్టర్‌తో వివరాలను నిర్ధారించండి.',
+    listening: 'వాయిస్ ఆదేశం కోసం వింటున్నాను. బస్సు సమాచారం, సీట్ల వివరాలు, సహాయం, మళ్లీ చెప్పు లేదా ఆపు అని చెప్పండి.',
+    micUnsupported: 'ఈ బ్రౌజర్‌లో వాయిస్ ఆదేశాలు అందుబాటులో లేవు. ఈ పేజీలోని పేరుతో ఉన్న బటన్లు లేదా ఫోన్ స్క్రీన్ రీడర్ ఉపయోగించండి.',
+    micDenied: 'మైక్రోఫోన్ అనుమతి ఇవ్వలేదు. అయినా బటన్లు మరియు స్క్రీన్ రీడర్ ఉపయోగించవచ్చు. వాయిస్ ఆదేశాల కోసం బ్రౌజర్ మైక్రోఫోన్ అనుమతులను పరిశీలించండి.',
+    languageSelected: 'తెలుగు ఎంచుకున్నారు. గైడ్ వినడానికి వాయిస్ మోడ్ ప్రారంభించండి.',
+    bus: 'నమూనా బస్సు సమాచారం. బస్సు ఐడీ', route: 'మార్గం', currentStop: 'నమూనా ప్రస్తుత స్టాప్', passengers: 'అంచనా ప్రయాణికులు', occupancy: 'అంచనా రద్దీ శాతం', crowd: 'నమూనా రద్దీ స్థాయి', notLive: 'ఇది నిజ సమయ సమాచారం కాదు. బస్సు ఎక్కే ముందు డ్రైవర్ లేదా కండక్టర్‌తో బస్సు మరియు స్టాప్ వివరాలు నిర్ధారించండి.',
+    seats: 'నమూనా సీట్ల సమాచారం. మొత్తం సీట్లు', occupied: 'నిండిన సీట్లు', available: 'ఖాళీగా ఉన్న సీట్లు', priority: 'ప్రాధాన్య సీట్లు ఖాళీగా ఉన్నాయి. ఈ సీట్ల మ్యాప్ నమూనా మాత్రమే; నిజమైన బస్సుతో భిన్నంగా ఉండవచ్చు.',
+    help: 'ఈ ప్రదర్శనలో సహాయం కోరుతున్నట్టు చూపించబడింది. రవాణా సిబ్బందికి సందేశం పంపబడలేదు. సహాయం కోసం డ్రైవర్, కండక్టర్ లేదా నమ్మకమైన వ్యక్తిని అడగండి.',
+    commandUnknown: 'క్షమించండి, అర్థం కాలేదు. బస్సు సమాచారం, సీట్ల వివరాలు, సహాయం, మళ్లీ చెప్పు లేదా ఆపు అని చెప్పండి.',
+    started: 'వాయిస్ మోడ్ ప్రారంభమైంది.', stopped: 'వాయిస్ గైడెన్స్ ఆపబడింది.', reading: 'పేజీ సూచనలు చదువుతున్నాను.',
+    speakBus: 'బస్సు సమాచారాన్ని వినండి', speakSeats: 'సీట్ల వివరాలను వినండి',
+    pageSummary: 'వాహన్ విజన్ బస్సు రద్దీ మరియు సీట్ల గురించి నమూనా సమాచారాన్ని వినడానికి సహాయపడుతుంది. డాష్‌బోర్డ్‌లో నమూనా సీట్ల మ్యాప్ మరియు రద్దీ వివరాలు ఉన్నాయి. ఈ నమూనాలోని బస్సు, స్థానం, కెమెరా మరియు సీట్ల సమాచారం నిజ సమయ సమాచారం కాదు. ఎక్కే ముందు ఈ నమూనాపైనే ఆధారపడకండి.'
+  },
+  hi: {
+    tag: 'hi-IN', html: 'hi', languageName: 'हिन्दी',
+    homeTitle: 'दृष्टिबाधित यात्रियों के लिए वॉइस गाइड',
+    homeIntro: 'पहले अपनी भाषा चुनें, फिर वॉइस मोड शुरू करें। आपका ब्राउज़र समर्थित होने पर वेबसाइट निर्देश बोलेगी और सरल वॉइस कमांड सुन सकेगी।',
+    start: '▶ वॉइस मोड शुरू करें', repeat: 'निर्देश दोबारा सुनें', stop: 'आवाज़ बंद करें',
+    ready: 'वॉइस गाइड तैयार है। भाषा चुनें और वॉइस मोड शुरू करें।',
+    commandNote: 'कहें: “बस की जानकारी”, “सीटों की उपलब्धता”, “मदद”, “दोबारा” या “बंद करो”। माइक्रोफ़ोन वैकल्पिक है और हर ब्राउज़र में उपलब्ध नहीं हो सकता।',
+    greeting: 'वाहन विज़न में आपका स्वागत है। यह बस यात्रा के लिए एक सुलभ वॉइस गाइड है। आपने हिन्दी चुनी है। आप बस की जानकारी, सीटों की उपलब्धता, मदद, दोबारा या बंद करो कह सकते हैं। यह केवल एक डेमो है। बस और सीटों का डेटा उदाहरण के लिए है। बस में चढ़ने से पहले चालक या कंडक्टर से जानकारी की पुष्टि करें।',
+    listening: 'वॉइस कमांड सुन रहा है। बस की जानकारी, सीटों की उपलब्धता, मदद, दोबारा या बंद करो कहें।',
+    micUnsupported: 'इस ब्राउज़र में वॉइस कमांड समर्थित नहीं हैं। इस पेज के स्पष्ट बटन या फ़ोन का स्क्रीन रीडर इस्तेमाल करें।',
+    micDenied: 'माइक्रोफ़ोन की अनुमति नहीं मिली। आप बटन और स्क्रीन रीडर फिर भी इस्तेमाल कर सकते हैं। वॉइस कमांड के लिए ब्राउज़र की माइक्रोफ़ोन अनुमति जाँचें।',
+    languageSelected: 'हिन्दी चुनी गई है। गाइड सुनने के लिए वॉइस मोड शुरू करें।',
+    bus: 'डेमो बस की जानकारी। बस आईडी', route: 'मार्ग', currentStop: 'उदाहरण का वर्तमान स्टॉप', passengers: 'अनुमानित यात्री', occupancy: 'अनुमानित क्षमता उपयोग', crowd: 'डेमो भीड़ स्तर', notLive: 'यह लाइव जानकारी नहीं है। बस में चढ़ने से पहले चालक या कंडक्टर से बस और स्टॉप की पुष्टि करें।',
+    seats: 'डेमो सीट जानकारी। कुल सीटें', occupied: 'भरी हुई सीटें', available: 'खाली सीटें', priority: 'प्राथमिकता वाली सीटें उपलब्ध हैं। यह सीट नक्शा केवल उदाहरण है और वास्तविक बस से अलग हो सकता है।',
+    help: 'इस डेमो में सहायता माँगने का संदेश दिखाया गया है। परिवहन कर्मचारियों को कोई संदेश नहीं भेजा गया है। सहायता के लिए चालक, कंडक्टर या किसी भरोसेमंद व्यक्ति से पूछें।',
+    commandUnknown: 'क्षमा करें, समझ नहीं आया। बस की जानकारी, सीटों की उपलब्धता, मदद, दोबारा या बंद करो कहें।',
+    started: 'वॉइस मोड शुरू हो गया है।', stopped: 'वॉइस गाइड बंद कर दी गई है।', reading: 'पेज के निर्देश पढ़े जा रहे हैं।',
+    speakBus: 'बस की जानकारी सुनें', speakSeats: 'सीटों की उपलब्धता सुनें',
+    pageSummary: 'वाहन विज़न यात्रियों को बस की भीड़ और सीटों की उदाहरण वाली जानकारी सुनने में मदद करता है। डैशबोर्ड में डेमो सीट नक्शा और भीड़ पैनल है। इस प्रोटोटाइप में बस, स्थान, कैमरा और सीटों का सारा डेटा उदाहरण है, लाइव जानकारी नहीं। बस में चढ़ने के लिए केवल इस डेमो पर भरोसा न करें।'
+  }
+};
+let selectedVoiceLanguage = (() => {
+  try { const saved = localStorage.getItem('vahanVisionVoiceLanguage'); return VOICE_COPY[saved] ? saved : 'en'; }
+  catch (e) { return 'en'; }
+})();
+let voiceModeActive = false;
+let voiceRecognition = null;
+let voiceIsSpeaking = false;
+let voiceSuppressRestart = false;
+let voiceRestartTimer = null;
+let voiceLastPrompt = '';
+
+function voiceCopy(key) { return (VOICE_COPY[selectedVoiceLanguage] || VOICE_COPY.en)[key] || VOICE_COPY.en[key] || key; }
+function setVoiceStatus(message) {
+  const home = document.getElementById('voiceHomeStatus');
+  const audio = document.getElementById('audioGuideStatus');
+  if (home) home.textContent = message;
+  if (audio) audio.textContent = message;
+}
+function stopVoiceListening() {
+  if (voiceRestartTimer) { clearTimeout(voiceRestartTimer); voiceRestartTimer = null; }
+  if (voiceRecognition) {
+    voiceSuppressRestart = true;
+    try { voiceRecognition.stop(); } catch (e) { /* already stopped */ }
+    setTimeout(() => { voiceSuppressRestart = false; }, 300);
+  }
+}
+function setVoiceLanguage(language, announce = true) {
+  if (!VOICE_COPY[language]) return;
+  selectedVoiceLanguage = language;
+  const guidePanel = document.getElementById('voice-guide');
+  if (guidePanel) guidePanel.lang = VOICE_COPY[language].html;
+  document.querySelectorAll('.voice-language-btn').forEach(btn => {
+    btn.setAttribute('aria-pressed', String(btn.dataset.language === language));
+    btn.lang = VOICE_COPY[btn.dataset.language]?.html || 'en';
+  });
+  const title = document.getElementById('voiceHomeTitle');
+  const intro = document.getElementById('voiceHomeIntro');
+  const startBtn = document.getElementById('startVoiceModeBtn');
+  const repeatBtn = document.getElementById('repeatVoiceHelpBtn');
+  const stopBtn = document.getElementById('stopHomeVoiceBtn');
+  const note = document.getElementById('voiceCommandNote');
+  const ready = VOICE_COPY[language];
+  if (title) title.textContent = ready.homeTitle;
+  if (intro) intro.textContent = ready.homeIntro;
+  if (startBtn) startBtn.textContent = ready.start;
+  if (repeatBtn) repeatBtn.textContent = ready.repeat;
+  if (stopBtn) stopBtn.textContent = ready.stop;
+  if (note) note.textContent = ready.commandNote;
+  const langGroup = document.querySelector('.voice-language-buttons');
+  if (langGroup) langGroup.setAttribute('aria-label', language === 'te' ? 'మాట్లాడే భాషను ఎంచుకోండి' : language === 'hi' ? 'बोली जाने वाली भाषा चुनें' : 'Choose spoken language');
+
+  const seatBtn = document.getElementById('readSeatMapBtn');
+  const busBtn = document.getElementById('readBusInfoBtn');
+  const stopAudioBtn = document.getElementById('stopSpeechBtn');
+  if (seatBtn) seatBtn.textContent = ready.speakSeats;
+  if (busBtn) busBtn.textContent = ready.speakBus;
+  if (stopAudioBtn) stopAudioBtn.textContent = ready.stop;
+  const autoLabel = document.querySelector('label[for="autoSeatVoice"]');
+  if (autoLabel) {
+    const checkbox = document.getElementById('autoSeatVoice');
+    autoLabel.innerHTML = '';
+    if (checkbox) autoLabel.appendChild(checkbox);
+    autoLabel.appendChild(document.createTextNode(language === 'te' ? 'సీటును ఎంచుకున్నప్పుడు దాని స్థితిని చెప్పండి' : language === 'hi' ? 'सीट चुनने पर उसकी स्थिति बताएं' : 'Announce seat status when I select a seat'));
+  }
+  if (typeof window.updateOfflineLanguage === 'function') window.updateOfflineLanguage(language);
+  if (announce) {
+    const message = ready.languageSelected;
+    setVoiceStatus(message);
+    speakVoiceText(message, voiceModeActive);
+  } else {
+    setVoiceStatus(ready.ready);
+  }
+}
+function speakVoiceText(message, resumeListening = true) {
+  voiceLastPrompt = message;
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+    setVoiceStatus(voiceCopy('micUnsupported'));
+    return;
+  }
+  stopVoiceListening();
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = voiceCopy('tag');
+  utterance.rate = 0.88;
+  utterance.pitch = 1;
+  utterance.onstart = () => {
+    voiceIsSpeaking = true;
+    setVoiceStatus((selectedVoiceLanguage === 'te' ? 'మాట్లాడుతోంది: ' : selectedVoiceLanguage === 'hi' ? 'बोल रहा है: ' : 'Speaking: ') + message);
+  };
+  utterance.onend = () => {
+    voiceIsSpeaking = false;
+    setVoiceStatus(voiceModeActive ? voiceCopy('listening') : voiceCopy('ready'));
+    if (voiceModeActive && resumeListening) voiceRestartTimer = setTimeout(startVoiceListening, 450);
+  };
+  utterance.onerror = () => {
+    voiceIsSpeaking = false;
+    setVoiceStatus(selectedVoiceLanguage === 'te' ? 'వాయిస్ ప్లే కాలేదు. ఫోన్ వాల్యూమ్ లేదా భాషా వాయిస్ సెట్టింగ్‌లను చూడండి.' : selectedVoiceLanguage === 'hi' ? 'आवाज़ नहीं चल सकी। फ़ोन का वॉल्यूम या भाषा की वॉइस सेटिंग जाँचें।' : 'Voice playback failed. Check device volume or language voice settings.');
+    if (voiceModeActive && resumeListening) voiceRestartTimer = setTimeout(startVoiceListening, 500);
+  };
+  window.speechSynthesis.speak(utterance);
+}
+function speakGuidance(message) {
+  // Existing dashboard demo function. New home voice mode uses the selected language.
+  speakVoiceText(message, true);
+}
+function readSeatMapAloud() {
+  const totalSeats = STATE.config.seatingCapacity;
+  const occupied = STATE.occupiedSeats.length;
+  const available = Math.max(0, totalSeats - occupied);
+  const priorityOccupied = STATE.occupiedSeats.filter(idx => idx < 8).length;
+  const priorityAvailable = Math.max(0, Math.min(totalSeats, 8) - priorityOccupied);
+  const t = VOICE_COPY[selectedVoiceLanguage];
+  const message = selectedVoiceLanguage === 'en'
+    ? `${t.seats} ${totalSeats}. ${occupied} ${t.occupied}; ${available} ${t.available}. ${priorityAvailable} ${t.priority}`
+    : selectedVoiceLanguage === 'te'
+      ? `${t.seats} ${totalSeats}. ${occupied} ${t.occupied}; ${available} ${t.available}. మొదటి ఎనిమిది ప్రాధాన్య సీట్లలో ${priorityAvailable} ఖాళీగా ఉన్నాయి. ${t.priority}`
+      : `${t.seats} ${totalSeats}. ${occupied} ${t.occupied}; ${available} ${t.available}. पहले आठ प्राथमिकता वाली सीटों में ${priorityAvailable} खाली हैं। ${t.priority}`;
+  speakGuidance(message);
+}
+function readBusInfoAloud() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const stop = bus?.stops?.[STATE.currentStopIdx];
+  const pct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+  const crowd = pct >= 90 ? (selectedVoiceLanguage === 'te' ? 'చాలా ఎక్కువ' : selectedVoiceLanguage === 'hi' ? 'बहुत अधिक' : 'critical') : pct >= 75 ? (selectedVoiceLanguage === 'te' ? 'ఎక్కువ' : selectedVoiceLanguage === 'hi' ? 'अधिक' : 'high') : pct >= 40 ? (selectedVoiceLanguage === 'te' ? 'మధ్యస్థం' : selectedVoiceLanguage === 'hi' ? 'मध्यम' : 'moderate') : (selectedVoiceLanguage === 'te' ? 'తక్కువ' : selectedVoiceLanguage === 'hi' ? 'कम' : 'low');
+  const t = VOICE_COPY[selectedVoiceLanguage];
+  const msg = `${t.bus} ${bus?.id || 'demo bus'}. ${t.route}: ${bus?.name || 'sample route'}. ${t.currentStop}: ${stop?.name || 'not available'}. ${t.passengers}: ${STATE.passengers}. ${t.occupancy}: ${pct} percent. ${t.crowd}: ${crowd}. ${t.notLive}`;
+  speakGuidance(msg);
+}
+function readPageInstructions() { speakVoiceText(voiceCopy('pageSummary'), true); }
+function stopAllVoice() {
+  voiceModeActive = false;
+  stopVoiceListening();
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  voiceIsSpeaking = false;
+  setVoiceStatus(voiceCopy('stopped'));
+}
+function getSpeechRecognitionConstructor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+function startVoiceListening() {
+  if (!voiceModeActive || voiceIsSpeaking) return;
+  if (!voiceRecognition) {
+    const Recognition = getSpeechRecognitionConstructor();
+    if (!Recognition) {
+      voiceModeActive = false;
+      setVoiceStatus(voiceCopy('micUnsupported'));
+      return;
+    }
+    voiceRecognition = new Recognition();
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.maxAlternatives = 1;
+    voiceRecognition.onresult = event => {
+      const result = event.results && event.results[event.results.length - 1];
+      const text = result && result[0] ? result[0].transcript : '';
+      if (text) handleVoiceCommand(text.toLocaleLowerCase());
+    };
+    voiceRecognition.onerror = event => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        voiceModeActive = false;
+        setVoiceStatus(voiceCopy('micDenied'));
+      } else if (event.error === 'language-not-supported') {
+        voiceModeActive = false;
+        setVoiceStatus(selectedVoiceLanguage === 'te' ? 'ఈ బ్రౌజర్ తెలుగు వాయిస్ గుర్తింపుకు మద్దతు ఇవ్వకపోవచ్చు. బటన్లు ఉపయోగించండి.' : selectedVoiceLanguage === 'hi' ? 'यह ब्राउज़र हिन्दी वॉइस पहचान का समर्थन नहीं कर सकता। बटन इस्तेमाल करें।' : 'This browser may not support speech recognition in the selected language. Use the buttons instead.');
+      }
+    };
+    voiceRecognition.onend = () => {
+      if (voiceModeActive && !voiceIsSpeaking && !voiceSuppressRestart) voiceRestartTimer = setTimeout(startVoiceListening, 450);
+    };
+  }
+  voiceRecognition.lang = voiceCopy('tag');
+  try {
+    voiceRecognition.start();
+    setVoiceStatus(voiceCopy('listening'));
+  } catch (e) {
+    // A duplicate start can occur while the browser is closing the previous session.
+    if (voiceModeActive) voiceRestartTimer = setTimeout(() => {
+      try { if (voiceModeActive && !voiceIsSpeaking) voiceRecognition.start(); } catch (_) { /* ignore duplicate start */ }
+    }, 700);
+  }
+}
+function normaliseVoiceCommand(text) {
+  return text.toLowerCase().replace(/[.,!?।]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function handleVoiceCommand(rawText) {
+  const text = normaliseVoiceCommand(rawText);
+  const te = selectedVoiceLanguage === 'te';
+  const hi = selectedVoiceLanguage === 'hi';
+  if (/(\bstop\b|\bquit\b|\bexit\b|ఆపు|వాయిస్ ఆపు|మూసేయి|बंद करो|रोकें|आवाज़ बंद|रुको)/i.test(text)) {
+    stopAllVoice(); return;
+  }
+  if (/(\brepeat\b|\bagain\b|మళ్లీ|మళ్ళీ|మరోసారి|दोबारा|फिर से|पुनः)/i.test(text)) {
+    speakVoiceText(voiceLastPrompt || voiceCopy('greeting'), true); return;
+  }
+  if (/(\bseat\b|\bseats\b|availability|సీట|సీట్లు|ఖాళీ|आसन|सीट|सीटें|खाली सीट)/i.test(text)) {
+    readSeatMapAloud(); return;
+  }
+  if (/(\bbus\b|\broute\b|\bstop\b information|information|బస్సు|బస్|మార్గం|సమాచారం|बस|जानकारी|मार्ग|स्टॉप)/i.test(text)) {
+    readBusInfoAloud(); return;
+  }
+  if (/(\bhelp\b|\bassistance\b|సహాయం|సాయం|మద్దతు|मदद|सहायता|सहयोग)/i.test(text)) {
+    speakVoiceText(voiceCopy('help'), true); return;
+  }
+  if (/(\binstructions\b|\bwhat can i say\b|సూచన|ఏమి చెప్పాలి|निर्देश|क्या बोल)/i.test(text)) {
+    speakVoiceText(voiceCopy('greeting'), true); return;
+  }
+  speakVoiceText(voiceCopy('commandUnknown'), true);
+}
+function startVoiceMode() {
+  const Recognition = getSpeechRecognitionConstructor();
+  voiceModeActive = true;
+  const intro = voiceCopy('greeting');
+  // A user gesture starts speech and requests microphone permission through browser UI.
+  if (!('speechSynthesis' in window)) {
+    voiceModeActive = false;
+    setVoiceStatus(voiceCopy('micUnsupported'));
+    return;
+  }
+  if (!Recognition) {
+    speakVoiceText(intro + ' ' + voiceCopy('micUnsupported'), false);
+    voiceModeActive = false;
+    return;
+  }
+  speakVoiceText(intro, true);
+}
+function initAudioGuidance() {
+  document.getElementById('readSeatMapBtn')?.addEventListener('click', readSeatMapAloud);
+  document.getElementById('readBusInfoBtn')?.addEventListener('click', readBusInfoAloud);
+  document.querySelectorAll('.voice-language-btn').forEach(btn => btn.addEventListener('click', () => setVoiceLanguage(btn.dataset.language, true)));
+  document.getElementById('startVoiceModeBtn')?.addEventListener('click', startVoiceMode);
+  document.getElementById('repeatVoiceHelpBtn')?.addEventListener('click', () => speakVoiceText(voiceCopy('greeting'), true));
+  document.getElementById('stopHomeVoiceBtn')?.addEventListener('click', stopAllVoice);
+  document.getElementById('stopSpeechBtn')?.addEventListener('click', stopAllVoice);
+  // Try to speak a short welcome as soon as the homepage opens. Browsers may block
+  // autoplay speech; if blocked, the visible Start Voice Mode button remains available.
+  setVoiceLanguage(selectedVoiceLanguage, false);
+  window.setTimeout(() => {
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      setVoiceStatus(voiceCopy('micUnsupported'));
+      return;
+    }
+    const welcome = voiceCopy('greeting') + ' ' + (selectedVoiceLanguage === 'te'
+      ? 'భాష మార్చడానికి తెలుగు, హిందీ లేదా ఇంగ్లీష్ బటన్లను ఎంచుకోండి.'
+      : selectedVoiceLanguage === 'hi'
+        ? 'भाषा बदलने के लिए अंग्रेज़ी, तेलुगु या हिन्दी बटन चुनें।'
+        : 'To change the spoken language, use the English, Telugu, or Hindi language buttons.');
+    speakVoiceText(welcome, false);
+  }, 650);
+}
+
+/* ============================================================
+   DENSITY GAUGE
+   ============================================================ */
+function updateGauge() {
+  const pax = STATE.passengers;
+  const safeCap = STATE.config.safeCapacity;
+  const seatedCount = STATE.occupiedSeats.length;
+  const standingEst = Math.max(0, pax - seatedCount);
+  const pct = Math.round((pax / safeCap) * 100);
+  const warnThresh = STATE.config.warningThresholdPct;
+
+  // Arc
+  const circumference = 2 * Math.PI * 68;
+  const offset = circumference - (circumference * Math.min(pct, 100) / 100);
+  const arc = document.getElementById('gaugeArc');
+  arc.setAttribute('stroke-dasharray', circumference);
+  arc.setAttribute('stroke-dashoffset', offset);
+
+  // Color
+  const severity = getSeverity(pct);
+  const colors = { low: '#22C55E', moderate: '#F59E0B', high: '#F97316', critical: '#EF4444' };
+  arc.setAttribute('stroke', colors[severity]);
+
+  document.getElementById('gaugePercent').textContent = pct + '%';
+  document.getElementById('gaugePercent').style.color = colors[severity];
+  document.getElementById('gaugePax').textContent = pax;
+  document.getElementById('gaugeSafeCap').textContent = safeCap;
+  document.getElementById('gaugeSeated').textContent = seatedCount;
+  document.getElementById('gaugeStanding').textContent = standingEst;
+
+  // Severity badge
+  const sevEl = document.getElementById('gaugeSeverity');
+  const sevLabels = { low: 'Low', moderate: 'Moderate', high: 'High', critical: 'Critical' };
+  sevEl.innerHTML = `<span class="severity-badge severity-${severity}">⬤ ${sevLabels[severity]} Crowd Density</span>`;
+
+  // Warning banner
+  const banner = document.getElementById('warningBanner');
+  if (pct >= warnThresh) {
+    banner.classList.add('visible');
+    document.getElementById('warningMsg').textContent =
+      pct >= 100 ? '🚨 EXCEEDING safe capacity! Immediate action required.' :
+      `⚠️ At ${pct}% of safe capacity — approaching warning threshold (${warnThresh}%).`;
+  } else {
+    banner.classList.remove('visible');
+  }
+}
+
+function getSeverity(pct) {
+  if (pct < 50) return 'low';
+  if (pct < 75) return 'moderate';
+  if (pct < 90) return 'high';
+  return 'critical';
+}
+
+/* ============================================================
+   BUS OVERVIEW
+   ============================================================ */
+function updateBusOverview() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const stops = bus.stops;
+  const stopIdx = STATE.currentStopIdx % stops.length;
+  const nextStopIdx = (stopIdx + 1) % stops.length;
+  const seatedCount = STATE.occupiedSeats.length;
+  const available = STATE.config.seatingCapacity - seatedCount;
+  const standingEst = Math.max(0, STATE.passengers - seatedCount);
+  const pct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+  const severity = getSeverity(pct);
+  const sevLabels = { low: '🟢 Low', moderate: '🟡 Moderate', high: '🟠 High', critical: '🔴 Critical' };
+  const eta = 2 + Math.round(Math.random() * 6);
+
+  document.getElementById('busOverview').innerHTML = `
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;">
+      <div><strong>Bus ID:</strong> ${bus.id}</div>
+      <div><strong>Route:</strong> ${bus.name}</div>
+      <div><strong>Current Stop:</strong> ${stops[stopIdx].name}</div>
+      <div><strong>Next Stop:</strong> ${stops[nextStopIdx].name}</div>
+      <div><strong>ETA Next Stop:</strong> ${eta} min</div>
+      <div><strong>Passengers:</strong> ${STATE.passengers}</div>
+      <div><strong>Seating Capacity:</strong> ${STATE.config.seatingCapacity}</div>
+      <div><strong>Occupied Seats:</strong> ${seatedCount}</div>
+      <div><strong>Available Seats:</strong> ${available}</div>
+      <div><strong>Standing (est.):</strong> ${standingEst}</div>
+      <div><strong>Occupancy:</strong> ${pct}%</div>
+      <div><strong>Crowd Status:</strong> ${sevLabels[severity]}</div>
+    </div>
+  `;
+
+  // Passenger view
+  document.getElementById('paxBusName').textContent = '🚌 ' + bus.id;
+  document.getElementById('paxRoute').textContent = bus.name;
+  document.getElementById('paxSeats').textContent = available;
+  const paxCrowd = document.getElementById('paxCrowd');
+  paxCrowd.textContent = severity.charAt(0).toUpperCase() + severity.slice(1);
+  const crowdColors = { low: '#22C55E', moderate: '#F59E0B', high: '#F97316', critical: '#EF4444' };
+  paxCrowd.style.color = crowdColors[severity];
+  document.getElementById('paxEta').textContent = eta + ' min';
+
+  const suggestion = document.getElementById('paxSuggestion');
+  if (severity === 'low' || severity === 'moderate') {
+    suggestion.className = 'pax-suggestion safe';
+    suggestion.textContent = '✅ Seats available — Board this bus';
+  } else if (severity === 'high') {
+    suggestion.className = 'pax-suggestion caution';
+    suggestion.textContent = '⚠️ Limited seats — Consider waiting for the next bus';
+  } else {
+    suggestion.className = 'pax-suggestion danger';
+    suggestion.textContent = '🚫 Bus is crowded — Wait for the next bus';
+  }
+}
+
+/* ============================================================
+   PREDICTION CHART
+   ============================================================ */
+function initPredictionChart() {
+  const ctx = document.getElementById('predictionChart').getContext('2d');
+  STATE.predictionChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Boarding',
+          data: [],
+          backgroundColor: 'rgba(45, 212, 191, 0.7)',
+          borderColor: '#2DD4BF',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Alighting',
+          data: [],
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: '#F59E0B',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: 'Projected Load',
+          data: [],
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#EF4444',
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94A3B8', font: { family: 'Poppins', size: 11 } } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Passengers', color: '#64748B', font: { size: 10 } } },
+        y1: { position: 'right', ticks: { color: '#64748B', font: { size: 10 } }, grid: { display: false }, title: { display: true, text: 'Load', color: '#64748B', font: { size: 10 } } }
+      }
+    }
+  });
+  updatePredictions();
+}
+
+function updatePredictions() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const stops = bus.stops;
+  const startIdx = STATE.currentStopIdx % stops.length;
+  const predStops = [];
+  const boarding = [];
+  const alighting = [];
+  const load = [];
+  let currentLoad = STATE.passengers;
+
+  const scenarioMult = { offpeak: 0.6, peak: 1.2, festival: 1.8 };
+  const typeMult = { terminal: 1.5, major: 1.2, college: 1.3, market: 1.1, hospital: 1.2, regular: 0.8 };
+  const mult = scenarioMult[STATE.scenario] || 1;
+
+  // Prediction table
+  const tbody = document.querySelector('#predictionTable tbody');
+  tbody.innerHTML = '';
+
+  for (let i = 1; i <= Math.min(5, stops.length - 1); i++) {
+    const idx = (startIdx + i) % stops.length;
+    const stop = stops[idx];
+    const tm = typeMult[stop.type] || 1;
+    const baseBoard = Math.round((8 + Math.random() * 12) * mult * tm);
+    const baseAlight = Math.round((3 + Math.random() * 8) * mult * (1 / tm));
+    const noise = 1 + (Math.random() * 0.3 - 0.15);
+    const b = Math.round(baseBoard * noise);
+    const a = Math.min(Math.round(baseAlight * noise), currentLoad);
+    currentLoad = Math.max(0, currentLoad + b - a);
+
+    predStops.push(stop.name.length > 14 ? stop.name.substring(0, 12) + '…' : stop.name);
+    boarding.push(b);
+    alighting.push(a);
+    load.push(currentLoad);
+
+    const confidence = Math.max(55, 95 - i * 8);
+    tbody.innerHTML += `
+      <tr>
+        <td>${stop.name}</td>
+        <td style="color: var(--teal-300);">+${b}</td>
+        <td style="color: var(--amber-400);">-${a}</td>
+        <td>${currentLoad}</td>
+        <td>${confidence}% <span class="confidence-bar"><span class="confidence-fill" style="width:${confidence}%"></span></span></td>
+      </tr>`;
+  }
+
+  // Update chart
+  STATE.predictionChart.data.labels = predStops;
+  STATE.predictionChart.data.datasets[0].data = boarding;
+  STATE.predictionChart.data.datasets[1].data = alighting;
+  STATE.predictionChart.data.datasets[2].data = load;
+  STATE.predictionChart.update('none');
+}
+
+/* ============================================================
+   MAP (Leaflet)
+   ============================================================ */
+function initMap() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const center = bus.stops[0];
+
+  STATE.map = L.map('route-map', {
+    scrollWheelZoom: false
+  }).setView([center.lat, center.lng], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors | Simulated GPS route',
+    maxZoom: 18
+  }).addTo(STATE.map);
+
+  updateMap();
+}
+
+function updateMap() {
+  const bus = STATE.buses[STATE.selectedBus];
+  const stops = bus.stops;
+
+  // Clear existing
+  if (STATE.routeLine) STATE.map.removeLayer(STATE.routeLine);
+  STATE.stopMarkers.forEach(m => STATE.map.removeLayer(m));
+  STATE.stopMarkers = [];
+  if (STATE.busMarker) STATE.map.removeLayer(STATE.busMarker);
+
+  // Route line
+  const coords = stops.map(s => [s.lat, s.lng]);
+  STATE.routeLine = L.polyline(coords, { color: '#2DD4BF', weight: 3, dashArray: '8 4', opacity: 0.8 }).addTo(STATE.map);
+
+  // Stop markers
+  const pct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+  stops.forEach((stop, i) => {
+    const severity = i <= STATE.currentStopIdx ? getSeverity(pct) : 'low';
+    const colors = { low: '#22C55E', moderate: '#F59E0B', high: '#F97316', critical: '#EF4444' };
+    const marker = L.circleMarker([stop.lat, stop.lng], {
+      radius: 8,
+      fillColor: colors[severity],
+      color: '#fff',
+      weight: 2,
+      fillOpacity: 0.8
+    }).addTo(STATE.map);
+    marker.bindPopup(`<strong>${stop.name}</strong><br>Type: ${stop.type}<br><em>Simulated stop</em>`);
+    STATE.stopMarkers.push(marker);
+  });
+
+  // Bus marker
+  const stopIdx = STATE.currentStopIdx % stops.length;
+  const busIcon = L.divIcon({
+    html: '<div style="background:#0F766E;color:white;padding:4px 8px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;border:2px solid #2DD4BF;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🚌 ' + bus.id + '</div>',
+    className: '',
+    iconSize: [120, 30],
+    iconAnchor: [60, 15]
+  });
+  STATE.busMarker = L.marker([stops[stopIdx].lat, stops[stopIdx].lng], { icon: busIcon }).addTo(STATE.map);
+
+  // Fit bounds
+  STATE.map.fitBounds(coords, { padding: [30, 30] });
+}
+
+/* ============================================================
+   CAMERA CANVAS (Simulated 360° View)
+   ============================================================ */
+function initCameraCanvas() {
+  const canvas = document.getElementById('cameraCanvas');
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth || 600;
+  canvas.height = wrap.clientHeight || 375;
+
+  // Initialize simulated persons
+  STATE.cameraPersons = [];
+  for (let i = 0; i < 12; i++) {
+    STATE.cameraPersons.push({
+      x: 40 + Math.random() * (canvas.width - 80),
+      y: 60 + Math.random() * (canvas.height - 120),
+      w: 22 + Math.random() * 10,
+      h: 35 + Math.random() * 15,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.3,
+      visible: true
+    });
+  }
+  drawCamera();
+}
+
+function drawCamera() {
+  const canvas = document.getElementById('cameraCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background - bus interior
+  ctx.fillStyle = '#0d1520';
+  ctx.fillRect(0, 0, W, H);
+
+  // Floor
+  ctx.fillStyle = '#141f30';
+  ctx.fillRect(0, H * 0.55, W, H * 0.45);
+
+  // Aisle line
+  ctx.strokeStyle = 'rgba(45,212,191,0.15)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Seat outlines (simplified)
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for (let row = 0; row < 5; row++) {
+    const y = 50 + row * 55;
+    // Left seats
+    ctx.strokeRect(15, y, 45, 30);
+    ctx.strokeRect(65, y, 45, 30);
+    // Right seats
+    ctx.strokeRect(W - 110, y, 45, 30);
+    ctx.strokeRect(W - 60, y, 45, 30);
+  }
+
+  // Zone heat overlay
+  const occupancyFactor = STATE.occupancyPct / 100;
+  // Door zone
+  ctx.fillStyle = `rgba(239, 68, 68, ${0.05 + occupancyFactor * 0.12})`;
+  ctx.fillRect(W * 0.3, H * 0.6, W * 0.15, H * 0.4);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '8px Poppins';
+  ctx.fillText('DOOR ZONE', W * 0.32, H * 0.95);
+
+  // Aisle zone
+  ctx.fillStyle = `rgba(245, 158, 11, ${0.03 + occupancyFactor * 0.08})`;
+  ctx.fillRect(W * 0.38, 0, W * 0.24, H);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('AISLE', W * 0.47, 20);
+
+  // Rear zone
+  ctx.fillStyle = `rgba(249, 115, 22, ${0.03 + occupancyFactor * 0.1})`;
+  ctx.fillRect(0, 0, W, H * 0.15);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('REAR', W * 0.47, H * 0.1);
+
+  // Draw persons
+  const visibleCount = Math.round(STATE.cameraPersons.length * Math.min(STATE.occupancyPct / 80, 1));
+  STATE.cameraPersons.forEach((p, i) => {
+    p.visible = i < visibleCount;
+    if (!p.visible) return;
+
+    // Move slightly
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 20 || p.x > W - 40) p.vx *= -1;
+    if (p.y < 30 || p.y > H - 60) p.vy *= -1;
+
+    // Bounding box
+    ctx.strokeStyle = '#22C55E';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(p.x, p.y, p.w, p.h);
+    ctx.setLineDash([]);
+
+    // Label
+    ctx.fillStyle = 'rgba(34,197,94,0.8)';
+    ctx.fillRect(p.x, p.y - 12, 65, 12);
+    ctx.fillStyle = '#fff';
+    ctx.font = '7px Poppins';
+    ctx.fillText('Person (sim)', p.x + 2, p.y - 3);
+
+    // Head circle
+    ctx.beginPath();
+    ctx.arc(p.x + p.w / 2, p.y + 8, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(45,212,191,0.4)';
+    ctx.fill();
+  });
+
+  // Timestamp
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '10px monospace';
+  const now = new Date();
+  ctx.fillText(now.toLocaleTimeString() + ' | SIMULATED FEED', W - 200, H - 10);
+
+  // Fisheye effect overlay (subtle circular vignette)
+  const gradient = ctx.createRadialGradient(W/2, H/2, W * 0.3, W/2, H/2, W * 0.7);
+  gradient.addColorStop(0, 'rgba(0,0,0,0)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  STATE.cameraAnimFrame = requestAnimationFrame(drawCamera);
+}
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+function generateAlerts() {
+  const pct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+  const bus = STATE.buses[STATE.selectedBus];
+  const stops = bus.stops;
+  const stopIdx = STATE.currentStopIdx % stops.length;
+  const nextStop = stops[(stopIdx + 1) % stops.length];
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const possible = [];
+
+  if (pct >= 90) {
+    possible.push({ msg: `Overcrowding detected — ${pct}% of safe capacity reached`, sev: 'danger', time: now });
+  }
+  if (pct >= 80 && pct < 90) {
+    possible.push({ msg: `High passenger load at ${nextStop.name} — consider skip or express`, sev: 'warn', time: now });
+  }
+  if (STATE.occupancyPct > 75) {
+    possible.push({ msg: `Door-zone congestion detected (simulated)`, sev: 'warn', time: now });
+  }
+  if (Math.random() > 0.7 && pct > 60) {
+    const delay = 2 + Math.round(Math.random() * 8);
+    possible.push({ msg: `Delay risk +${delay} min due to extended boarding at ${stops[stopIdx].name}`, sev: 'info', time: now });
+  }
+  if (pct >= STATE.config.warningThresholdPct) {
+    possible.push({ msg: `Approaching safe capacity threshold (${STATE.config.warningThresholdPct}%)`, sev: 'danger', time: now });
+  }
+
+  // Add one random alert
+  if (possible.length > 0) {
+    const alert = possible[Math.floor(Math.random() * possible.length)];
+    alert.id = STATE.alertIdCounter++;
+    STATE.alerts.unshift(alert);
+    if (STATE.alerts.length > 20) STATE.alerts.pop();
+    renderAlerts();
+  }
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alertList');
+  if (STATE.alerts.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--gray-500);font-size:0.8rem;padding:20px;">No active alerts</div>';
+    return;
+  }
+  list.innerHTML = STATE.alerts.map(a => `
+    <div class="alert-item sev-${a.sev}" id="alert-${a.id}">
+      <span class="alert-time">${a.time}</span>
+      <span class="alert-msg">${a.msg}</span>
+      <button class="alert-dismiss" onclick="dismissAlert(${a.id})" aria-label="Dismiss alert">✕</button>
+    </div>
+  `).join('');
+}
+
+function dismissAlert(id) {
+  STATE.alerts = STATE.alerts.filter(a => a.id !== id);
+  renderAlerts();
+}
+
+/* ============================================================
+   SIMULATION TICK LOOP
+   ============================================================ */
+function startSimulation() {
+  STATE.tickInterval = setInterval(() => {
+    if (!STATE.running) return;
+    STATE.tick++;
+
+    // Advance bus along route
+    STATE.busProgress += 0.02;
+    if (STATE.busProgress >= 1) {
+      STATE.busProgress = 0;
+      STATE.currentStopIdx++;
+      const bus = STATE.buses[STATE.selectedBus];
+      if (STATE.currentStopIdx >= bus.stops.length) STATE.currentStopIdx = 0;
+
+      // Simulate boarding/alighting at stop
+      const scenarioMult = { offpeak: 0.6, peak: 1.2, festival: 1.8 };
+      const m = scenarioMult[STATE.scenario] || 1;
+      const board = Math.round((3 + Math.random() * 8) * m);
+      const alight = Math.round((2 + Math.random() * 5) * m);
+      STATE.passengers = Math.max(5, Math.min(STATE.passengers + board - alight, STATE.config.safeCapacity + 15));
+
+      // Update occupied seats
+      const totalSeats = STATE.config.seatingCapacity;
+      const newOccupied = Math.min(STATE.passengers, totalSeats);
+      const indices = Array.from({ length: totalSeats }, (_, i) => i);
+      shuffleArray(indices);
+      STATE.occupiedSeats = indices.slice(0, newOccupied);
+      STATE.occupancyPct = Math.round((STATE.passengers / STATE.config.safeCapacity) * 100);
+      document.getElementById('occSlider').value = Math.min(STATE.occupancyPct, 100);
+      document.getElementById('occSliderVal').textContent = Math.min(STATE.occupancyPct, 100) + '%';
+      renderSeatMap();
+    }
+
+    // Move bus marker
+    moveBusMarker();
+
+    // Generate alerts periodically
+    if (STATE.tick % 15 === 0) generateAlerts();
+
+    // Update everything periodically
+    if (STATE.tick % 5 === 0) updateAll();
+
+  }, 500);
+}
+
+function moveBusMarker() {
+  if (!STATE.busMarker || !STATE.map) return;
+  const bus = STATE.buses[STATE.selectedBus];
+  const stops = bus.stops;
+  const fromIdx = STATE.currentStopIdx % stops.length;
+  const toIdx = (fromIdx + 1) % stops.length;
+  const from = stops[fromIdx];
+  const to = stops[toIdx];
+  const lat = from.lat + (to.lat - from.lat) * STATE.busProgress;
+  const lng = from.lng + (to.lng - from.lng) * STATE.busProgress;
+  STATE.busMarker.setLatLng([lat, lng]);
+}
+
+/* ============================================================
+   UPDATE ALL PANELS
+   ============================================================ */
+function updateAll() {
+  updateBusOverview();
+  updateGauge();
+  updatePredictions();
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// Resize camera canvas on window resize
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('cameraCanvas');
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth || 600;
+  canvas.height = wrap.clientHeight || 375;
+});
+</script>
+
+<script>
+/* VAHAN VISION Offline Travel Mode. Emergency numbers are bundled into the page;
+   user-entered details are stored locally and are not transmitted anywhere. */
+(function () {
+  'use strict';
+  const STORAGE_KEY = 'vahanVisionOfflineEmergencyPack.v1';
+  const fields = {
+    route: document.getElementById('offlineRoute'),
+    stop: document.getElementById('offlineStop'),
+    trustedName: document.getElementById('offlineTrustedName'),
+    trustedPhone: document.getElementById('offlineTrustedPhone'),
+    helpPoints: document.getElementById('offlineHelpPoints'),
+    sosMessage: document.getElementById('offlineSosMessage')
+  };
+  const connectionPill = document.getElementById('connectionPill');
+  const offlineStatus = document.getElementById('offlineStatus');
+  const saveStatus = document.getElementById('offlineSaveStatus');
+  const saveButton = document.getElementById('saveOfflinePackBtn');
+  let saveTimer = null;
+  let storageWorks = true;
+
+  const langText = {
+    en: {
+      online: 'Online — your emergency pack is stored on this device.',
+      offline: 'Offline — showing the saved emergency pack on this device.',
+      unknown: 'Connection status cannot be confirmed. Saved emergency information is still shown.',
+      pillOnline: 'Online connection', pillOffline: 'Offline connection', pillUnknown: 'Connection unknown',
+      title: 'Offline Travel Mode',
+      intro: 'Even when the internet disappears, your saved emergency information stays on this device. Open VAHAN VISION once while online, add trusted local help points, and save your offline pack before travelling.',
+      saved: 'Emergency pack saved on this device. It will be available again in this browser.',
+      savedAuto: 'Changes saved on this device.',
+      storageError: 'This browser did not allow local saving. Keep this page open and use the downloaded offline-ready package for reliable reopen-after-disconnect support.',
+      copied: 'SOS message copied. It has not been sent to anyone.',
+      copyFailed: 'Copy was blocked by this browser. Select the message text and copy it manually.',
+      readText: 'VAHAN VISION offline travel mode. Visakhapatnam emergency contacts: ambulance 108, fire service 101, and police emergency 100. Your saved local help points and travel details are shown on this screen. This page cannot send an emergency alert by itself.'
+    },
+    te: {
+      online: 'ఆన్‌లైన్ — అత్యవసర వివరాలు ఈ పరికరంలో భద్రపరచబడ్డాయి.',
+      offline: 'ఆఫ్‌లైన్ — ఈ పరికరంలో భద్రపరిచిన అత్యవసర వివరాలు చూపబడుతున్నాయి.',
+      unknown: 'కనెక్షన్ స్థితిని నిర్ధారించలేకపోయాం. భద్రపరిచిన వివరాలు ఇక్కడ ఉన్నాయి.',
+      pillOnline: 'ఆన్‌లైన్ కనెక్షన్', pillOffline: 'ఆఫ్‌లైన్ కనెక్షన్', pillUnknown: 'కనెక్షన్ తెలియదు',
+      title: 'ఆఫ్‌లైన్ ప్రయాణ మోడ్',
+      intro: 'ఇంటర్నెట్ పోయినా, భద్రపరిచిన అత్యవసర వివరాలు ఈ పరికరంలో ఉంటాయి. ప్రయాణానికి ముందు స్థానిక సహాయ కేంద్రాల వివరాలను జోడించి సేవ్ చేయండి.',
+      saved: 'అత్యవసర వివరాలు ఈ పరికరంలో సేవ్ అయ్యాయి.',
+      savedAuto: 'మార్పులు ఈ పరికరంలో సేవ్ అయ్యాయి.',
+      storageError: 'ఈ బ్రౌజర్ స్థానికంగా సేవ్ చేయడానికి అనుమతించలేదు. పేజీని తెరిచి ఉంచండి; తిరిగి ఆఫ్‌లైన్‌లో తెరవడానికి HTTPS/localhost ప్యాకేజీని ఉపయోగించండి.',
+      copied: 'అత్యవసర సందేశం కాపీ అయింది. ఎవరికీ పంపబడలేదు.',
+      copyFailed: 'కాపీ చేయడాన్ని బ్రౌజర్ నిరోధించింది. సందేశాన్ని ఎంచుకుని మాన్యువల్‌గా కాపీ చేయండి.',
+      readText: 'వాహన్ విజన్ ఆఫ్‌లైన్ ప్రయాణ మోడ్. విశాఖపట్నం అత్యవసర నంబర్లు: అంబులెన్స్ 108, అగ్నిమాపక సేవ 101, పోలీస్ అత్యవసర సేవ 100. ఈ పేజీ స్వయంగా అత్యవసర సందేశాన్ని పంపదు.'
+    },
+    hi: {
+      online: 'ऑनलाइन — आपातकालीन जानकारी इस डिवाइस पर सेव है।',
+      offline: 'ऑफ़लाइन — इस डिवाइस पर सेव की गई आपातकालीन जानकारी दिखाई जा रही है।',
+      unknown: 'कनेक्शन की पुष्टि नहीं हो सकी। सेव की गई जानकारी यहाँ उपलब्ध है।',
+      pillOnline: 'ऑनलाइन कनेक्शन', pillOffline: 'ऑफ़लाइन कनेक्शन', pillUnknown: 'कनेक्शन अज्ञात',
+      title: 'ऑफ़लाइन यात्रा मोड',
+      intro: 'इंटरनेट बंद होने पर भी सेव की गई आपातकालीन जानकारी इस डिवाइस पर रहेगी। यात्रा से पहले भरोसेमंद स्थानीय सहायता केंद्र जोड़कर सेव करें।',
+      saved: 'आपातकालीन जानकारी इस डिवाइस पर सेव हो गई है।',
+      savedAuto: 'बदलाव इस डिवाइस पर सेव हो गए हैं।',
+      storageError: 'यह ब्राउज़र स्थानीय रूप से सेव नहीं कर पाया। पेज खुला रखें; दोबारा ऑफ़लाइन खोलने के लिए HTTPS/localhost पैकेज इस्तेमाल करें।',
+      copied: 'आपातकालीन संदेश कॉपी हो गया है। इसे किसी को भेजा नहीं गया है।',
+      copyFailed: 'ब्राउज़र ने कॉपी रोक दी। संदेश चुनकर मैन्युअल रूप से कॉपी करें।',
+      readText: 'वाहन विज़न ऑफ़लाइन यात्रा मोड। विशाखापत्तनम के आपातकालीन नंबर: एम्बुलेंस 108, अग्निशमन सेवा 101 और पुलिस आपातकाल 100। यह पेज अपने आप आपातकालीन अलर्ट नहीं भेज सकता।'
+    }
+  };
+  function getLang() {
+    try { const saved = localStorage.getItem('vahanVisionVoiceLanguage'); return langText[saved] ? saved : 'en'; }
+    catch (_) { return 'en'; }
+  }
+  function textPack() { return langText[getLang()] || langText.en; }
+  function setStatus() {
+    const t = textPack();
+    if (!navigator.onLine) {
+      connectionPill.textContent = t.pillOffline;
+      connectionPill.classList.add('is-offline');
+      offlineStatus.textContent = t.offline;
+      offlineStatus.classList.add('is-offline');
+    } else {
+      connectionPill.textContent = t.pillOnline;
+      connectionPill.classList.remove('is-offline');
+      offlineStatus.textContent = t.online;
+      offlineStatus.classList.remove('is-offline');
+    }
+    connectionPill.setAttribute('aria-label', connectionPill.textContent);
+  }
+  function savePack(announce) {
+    const data = {};
+    Object.keys(fields).forEach(key => { data[key] = fields[key] ? fields[key].value : ''; });
+    data.savedAt = new Date().toISOString();
+    data.emergencyNumbers = { ambulance: '108', fire: '101', police: '100' };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      storageWorks = true;
+      if (saveStatus) saveStatus.textContent = announce ? textPack().saved : textPack().savedAuto;
+    } catch (err) {
+      storageWorks = false;
+      if (saveStatus) saveStatus.textContent = textPack().storageError;
+    }
+  }
+  function loadPack() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { savePack(false); return; }
+      const data = JSON.parse(raw);
+      Object.keys(fields).forEach(key => {
+        if (fields[key] && typeof data[key] === 'string') fields[key].value = data[key];
+      });
+      if (saveStatus) saveStatus.textContent = textPack().saved;
+    } catch (err) {
+      storageWorks = false;
+      if (saveStatus) saveStatus.textContent = textPack().storageError;
+    }
+  }
+  function buildSosMessage() {
+    const base = (fields.sosMessage?.value || '').trim();
+    const details = [];
+    if (fields.route?.value.trim()) details.push('Bus route/number: ' + fields.route.value.trim());
+    if (fields.stop?.value.trim()) details.push('Current stop/landmark: ' + fields.stop.value.trim());
+    if (fields.trustedName?.value.trim()) details.push('Trusted contact: ' + fields.trustedName.value.trim());
+    if (fields.trustedPhone?.value.trim()) details.push('Trusted contact phone: ' + fields.trustedPhone.value.trim());
+    return [base, ...details].filter(Boolean).join('\n');
+  }
+  async function copySos() {
+    const message = buildSosMessage();
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(message);
+      } else {
+        const temp = document.createElement('textarea');
+        temp.value = message; temp.setAttribute('readonly', '');
+        temp.style.position = 'fixed'; temp.style.opacity = '0';
+        document.body.appendChild(temp); temp.select();
+        const ok = document.execCommand('copy'); temp.remove();
+        if (!ok) throw new Error('copy failed');
+      }
+      saveStatus.textContent = textPack().copied;
+    } catch (err) {
+      saveStatus.textContent = textPack().copyFailed;
+    }
+  }
+  function readOfflineHelp() {
+    const lang = getLang();
+    const t = textPack();
+    const fullText = t.readText + ' ' + (fields.helpPoints?.value ? (lang === 'te' ? 'మీరు సేవ్ చేసిన స్థానిక సహాయ వివరాలు: ' : lang === 'hi' ? 'आपके सेव किए गए स्थानीय सहायता विवरण: ' : 'Your saved local help points are: ') + fields.helpPoints.value : '');
+    try {
+      if (typeof speakVoiceText === 'function') speakVoiceText(fullText, false);
+      else if ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(fullText);
+        u.lang = lang === 'te' ? 'te-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+        window.speechSynthesis.speak(u);
+      } else saveStatus.textContent = 'Speech is not supported in this browser.';
+    } catch (_) { saveStatus.textContent = 'Could not start speech. Use your device screen reader.'; }
+  }
+  window.updateOfflineLanguage = function (lang) {
+    const t = langText[lang] || langText.en;
+    document.getElementById('offlineTitle').textContent = t.title;
+    document.getElementById('offlineIntro').textContent = t.intro;
+    setStatus();
+  };
+  window.updateOfflineLanguage(getLang());
+  document.getElementById('offlineEmergencyForm')?.addEventListener('submit', function (ev) {
+    ev.preventDefault(); savePack(true);
+  });
+  Object.values(fields).forEach(field => field?.addEventListener('input', function () {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => savePack(false), 450);
+  }));
+  document.getElementById('copyOfflineSosBtn')?.addEventListener('click', copySos);
+  document.getElementById('readOfflineHelpBtn')?.addEventListener('click', readOfflineHelp);
+  window.addEventListener('online', setStatus);
+  window.addEventListener('offline', setStatus);
+  loadPack();
+  setStatus();
+  // Progressive Web App support works only from HTTPS or localhost, not file://.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    const shell = encodeURIComponent(location.pathname.split('/').pop() || 'index.html');
+    navigator.serviceWorker.register('./sw.js?shell=' + shell).catch(() => {
+      if (saveStatus && navigator.onLine) saveStatus.textContent = 'Local emergency information works, but automatic offline reopening is not enabled on this host.';
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
